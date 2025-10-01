@@ -10,14 +10,28 @@ import type { Claim } from "@shared/schema";
 
 export default function Dashboard() {
   const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState<Record<string, any>>({});
 
-  const { data: claims, isLoading: claimsLoading } = useQuery<Claim[]>({
-    queryKey: ['/api/claims', filters],
+  const queryParams = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      if (Array.isArray(value)) {
+        value.forEach(v => queryParams.append(key, v.toString()));
+      } else {
+        queryParams.append(key, value.toString());
+      }
+    }
   });
+  const queryString = queryParams.toString();
 
-  const { data: metrics, isLoading: metricsLoading } = useQuery({
-    queryKey: ['/api/metrics'],
+  const { data: claims, isLoading: claimsLoading, isError, error, refetch } = useQuery<Claim[]>({
+    queryKey: ['/api/claims', queryString],
+    queryFn: async () => {
+      const url = queryString ? `/api/claims?${queryString}` : '/api/claims';
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to fetch claims');
+      return res.json();
+    },
   });
 
   return (
@@ -32,26 +46,26 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Assigned Claims"
-          value={metricsLoading ? "..." : (claims?.length || 0).toString()}
+          value={claimsLoading ? "..." : (claims?.length || 0).toString()}
           icon={<ClipboardList className="h-5 w-5" />}
-          subtitle={`${claims?.filter(c => c.status === "new").length || 0} new`}
+          subtitle={`${(claims || []).filter(c => c.status === "new").length} new`}
           trend={{ value: 12, direction: "up" }}
         />
         <MetricCard
           title="Total Balance"
-          value={metricsLoading ? "..." : `$${(((claims || []).reduce((sum, c) => sum + parseFloat(c.balanceDue as string || "0"), 0)) / 1000).toFixed(1)}K`}
+          value={claimsLoading ? "..." : `$${(((claims || []).reduce((sum, c) => sum + parseFloat(c.balanceDue as string || "0"), 0)) / 1000).toFixed(1)}K`}
           icon={<DollarSign className="h-5 w-5" />}
           subtitle="Across all claims"
         />
         <MetricCard
           title="Avg Age"
-          value={metricsLoading ? "..." : `${Math.round(claims?.reduce((sum, c) => sum + (c.invoiceAge || 0), 0) / (claims?.length || 1))} days`}
+          value={claimsLoading ? "..." : `${Math.round((claims || []).reduce((sum, c) => sum + (c.invoiceAge || 0), 0) / ((claims || []).length || 1))} days`}
           icon={<Clock className="h-5 w-5" />}
           subtitle="Invoice age"
         />
         <MetricCard
           title="At Risk Claims"
-          value={metricsLoading ? "..." : (claims?.filter(c => c.slaStatus === "red").length || 0).toString()}
+          value={claimsLoading ? "..." : ((claims || []).filter(c => c.slaStatus === "red").length).toString()}
           icon={<TrendingUp className="h-5 w-5" />}
           subtitle="SLA breach"
           trend={{ value: -5, direction: "down" }}
@@ -71,14 +85,34 @@ export default function Dashboard() {
 
         <SearchFilterBar onFilterChange={setFilters} />
 
-        {claimsLoading ? (
+        {isError ? (
+          <div className="flex flex-col items-center justify-center h-64 gap-4">
+            <p className="text-destructive">Failed to load claims: {(error as Error)?.message}</p>
+            <Button onClick={() => refetch()} variant="outline" data-testid="button-retry">
+              Retry
+            </Button>
+          </div>
+        ) : claimsLoading ? (
           <div className="flex items-center justify-center h-64 text-muted-foreground">
             Loading claims...
+          </div>
+        ) : !claims || claims.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 gap-4">
+            <p className="text-muted-foreground">No claims match your filters</p>
+            {(filters.status || filters.search || filters.minAge) && (
+              <Button 
+                onClick={() => setFilters({})} 
+                variant="outline" 
+                data-testid="button-clear-all-filters"
+              >
+                Clear Filters
+              </Button>
+            )}
           </div>
         ) : (
           <>
             <ClaimsTable
-              claims={claims?.map(c => ({
+              claims={claims.map(c => ({
                 id: c.id!,
                 patientName: c.customerName,
                 invoiceNumber: c.invoiceNumber,
@@ -86,14 +120,14 @@ export default function Dashboard() {
                 balanceDue: parseFloat(c.balanceDue as string || "0"),
                 invoiceAge: c.invoiceAge || 0,
                 status: c.status,
-                slaStatus: c.slaStatus || "green",
+                slaStatus: (c.slaStatus || "green") as "green" | "yellow" | "red",
                 lastAction: c.assignedTo ? `Assigned to ${c.assignedTo}` : "Unassigned",
-              })) || []}
+              }))}
               onViewClaim={(claimId) => setSelectedClaimId(claimId)}
             />
 
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <p>Showing {claims?.length || 0} claims</p>
+              <p>Showing {claims.length} claims</p>
             </div>
           </>
         )}

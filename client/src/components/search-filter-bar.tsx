@@ -22,11 +22,11 @@ export function SearchFilterBar({ onFilterChange }: SearchFilterBarProps) {
 
   const applyFilters = (search?: string, status?: string, age?: string) => {
     const filters: any = {};
-    if (search) filters.search = search;
-    if (status) filters.status = status;
+    if (search && search.trim()) filters.search = search.trim();
+    if (status) filters.status = [status];
     if (age) {
       const [min, max] = age.split("-");
-      if (max === "+") {
+      if (max === "") {
         filters.minAge = parseInt(min);
       } else {
         filters.minAge = parseInt(min);
