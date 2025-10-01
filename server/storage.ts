@@ -3,6 +3,7 @@ import { db } from "./db";
 import {
   type User,
   type InsertUser,
+  type UpsertUser,
   type Tenant,
   type InsertTenant,
   type Claim,
@@ -22,6 +23,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  upsertUser(user: UpsertUser): Promise<User>;
   
   getTenant(id: string): Promise<Tenant | undefined>;
   createTenant(tenant: InsertTenant): Promise<Tenant>;
@@ -89,6 +91,53 @@ export class DbStorage implements IStorage {
   async createUser(user: InsertUser): Promise<User> {
     const result = await db.insert(users).values(user).returning();
     return result[0];
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    let defaultTenant = await db
+      .select()
+      .from(tenants)
+      .limit(1);
+    
+    if (defaultTenant.length === 0) {
+      const [newTenant] = await db
+        .insert(tenants)
+        .values({
+          name: 'Default Healthcare Organization',
+          settings: {},
+        })
+        .returning();
+      defaultTenant = [newTenant];
+    }
+    
+    const tenantId = defaultTenant[0].id;
+    
+    const [user] = await db
+      .insert(users)
+      .values({
+        id: userData.id,
+        replitId: userData.id,
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        profileImageUrl: userData.profileImageUrl,
+        fullName: [userData.firstName, userData.lastName].filter(Boolean).join(' ') || userData.email || 'User',
+        tenantId: tenantId,
+        role: 'agent',
+      })
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          profileImageUrl: userData.profileImageUrl,
+          fullName: [userData.firstName, userData.lastName].filter(Boolean).join(' ') || userData.email || 'User',
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
   }
 
   async getTenant(id: string): Promise<Tenant | undefined> {

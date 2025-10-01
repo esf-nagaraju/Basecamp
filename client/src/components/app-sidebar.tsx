@@ -7,6 +7,7 @@ import {
   Settings,
   FileText,
   AlertCircle,
+  LogOut,
 } from "lucide-react";
 import {
   Sidebar,
@@ -20,7 +21,9 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const menuItems = [
   {
@@ -63,11 +66,44 @@ const menuItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const currentRole = "agent";
+  const { user } = useAuth();
+  const currentRole = user?.role || "agent";
 
   const filteredItems = menuItems.filter((item) =>
     item.roles.includes(currentRole)
   );
+
+  const handleLogout = () => {
+    window.location.href = "/api/logout";
+  };
+
+  const getInitials = (user: any) => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    if (user?.fullName) {
+      const parts = user.fullName.split(' ');
+      if (parts.length >= 2) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+      }
+      return user.fullName.substring(0, 2).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return 'U';
+  };
+
+  const getRoleLabel = (role: string) => {
+    const roleMap: Record<string, string> = {
+      agent: "AR Specialist",
+      lead: "Team Lead",
+      manager: "AR Manager",
+      client: "Client",
+      admin: "Administrator",
+    };
+    return roleMap[role] || role;
+  };
 
   return (
     <Sidebar>
@@ -121,18 +157,35 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 space-y-2">
         <div className="flex items-center gap-3">
           <Avatar>
+            {user?.profileImageUrl && (
+              <AvatarImage src={user.profileImageUrl} alt={user.fullName || user.email || 'User'} />
+            )}
             <AvatarFallback className="bg-primary text-primary-foreground">
-              JS
+              {getInitials(user)}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium truncate">John Smith</p>
-            <p className="text-xs text-muted-foreground">AR Specialist</p>
+            <p className="text-sm font-medium truncate" data-testid="text-user-name">
+              {user?.fullName || user?.email || 'User'}
+            </p>
+            <p className="text-xs text-muted-foreground" data-testid="text-user-role">
+              {getRoleLabel(currentRole)}
+            </p>
           </div>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={handleLogout}
+          data-testid="button-logout"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Log Out
+        </Button>
       </SidebarFooter>
     </Sidebar>
   );

@@ -10,17 +10,33 @@ export const tenants = pgTable("tenants", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
-  username: text("username").notNull(),
-  password: text("password").notNull(),
-  email: text("email").notNull(),
+  replitId: varchar("replit_id"),
+  username: text("username"),
+  password: text("password"),
+  email: text("email"),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
   role: text("role").notNull().default("agent"),
-  fullName: text("full_name").notNull(),
+  fullName: text("full_name"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({
   tenantIdx: index("users_tenant_idx").on(table.tenantId),
+  replitIdIdx: index("users_replit_id_idx").on(table.replitId),
   tenantUsernameUnique: index("users_tenant_username_unique").on(table.tenantId, table.username),
 }));
 
@@ -134,6 +150,15 @@ export const insertTenantSchema = createInsertSchema(tenants).omit({
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
+});
+
+export const upsertUserSchema = z.object({
+  id: z.string(),
+  email: z.string().nullable(),
+  firstName: z.string().nullable(),
+  lastName: z.string().nullable(),
+  profileImageUrl: z.string().nullable(),
 });
 
 export const insertClaimSchema = createInsertSchema(claims).omit({
@@ -157,6 +182,7 @@ export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type Tenant = typeof tenants.$inferSelect;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 export type InsertClaim = z.infer<typeof insertClaimSchema>;
