@@ -1,18 +1,169 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, decimal, jsonb, boolean, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
+export const tenants = pgTable("tenants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  name: text("name").notNull(),
+  settings: jsonb("settings").default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  username: text("username").notNull(),
+  password: text("password").notNull(),
+  email: text("email").notNull(),
+  role: text("role").notNull().default("agent"),
+  fullName: text("full_name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  tenantIdx: index("users_tenant_idx").on(table.tenantId),
+  tenantUsernameUnique: index("users_tenant_username_unique").on(table.tenantId, table.username),
+}));
+
+export const claims = pgTable("claims", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  
+  customerId: text("customer_id"),
+  customerName: text("customer_name").notNull(),
+  dob: text("dob"),
+  insuredId: text("insured_id"),
+  
+  payorGroup: text("payor_group"),
+  payorCode: text("payor_code"),
+  payorName: text("payor_name").notNull(),
+  payorType: text("payor_type"),
+  
+  listPrice: decimal("list_price", { precision: 10, scale: 2 }),
+  allowedAmount: decimal("allowed_amount", { precision: 10, scale: 2 }),
+  dueAmount: decimal("due_amount", { precision: 10, scale: 2 }),
+  appliedAmount: decimal("applied_amount", { precision: 10, scale: 2 }),
+  balanceDue: decimal("balance_due", { precision: 10, scale: 2 }).notNull(),
+  
+  invoiceNumber: text("invoice_number").notNull(),
+  invoiceDate: text("invoice_date"),
+  invoiceAge: integer("invoice_age"),
+  invoiceAgeBucket: text("invoice_age_bucket"),
+  
+  dateOfService: text("date_of_service"),
+  dosAgeBucket: text("dos_age_bucket"),
+  hcpcCode: text("hcpc_code"),
+  mod1: text("mod1"),
+  mod2: text("mod2"),
+  mod3: text("mod3"),
+  mod4: text("mod4"),
+  
+  auditFlag: boolean("audit_flag").default(false),
+  pendingAdjustment: boolean("pending_adjustment").default(false),
+  errorFlag: boolean("error_flag").default(false),
+  invoiceStatus: text("invoice_status"),
+  
+  status: text("status").notNull().default("new"),
+  slaStatus: text("sla_status").default("green"),
+  
+  denialCodes: jsonb("denial_codes").default([]),
+  lastDenialDate: text("last_denial_date"),
+  lastDenialPosted: text("last_denial_posted"),
+  
+  assignedTo: varchar("assigned_to").references(() => users.id),
+  priorityScore: integer("priority_score").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  tenantIdx: index("claims_tenant_idx").on(table.tenantId),
+  statusIdx: index("claims_status_idx").on(table.status),
+  assignedIdx: index("claims_assigned_idx").on(table.assignedTo),
+  ageIdx: index("claims_age_idx").on(table.invoiceAge),
+  priorityIdx: index("claims_priority_idx").on(table.tenantId, table.priorityScore, table.invoiceAge),
+  balanceIdx: index("claims_balance_idx").on(table.tenantId, table.balanceDue),
+  invoiceNumIdx: index("claims_invoice_num_idx").on(table.tenantId, table.invoiceNumber),
+  payorNameIdx: index("claims_payor_name_idx").on(table.tenantId, table.payorName),
+  customerNameIdx: index("claims_customer_name_idx").on(table.tenantId, table.customerName),
+}));
+
+export const tasks = pgTable("tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  claimId: varchar("claim_id").notNull().references(() => claims.id),
+  assignedTo: varchar("assigned_to").references(() => users.id),
+  
+  title: text("title").notNull(),
+  description: text("description"),
+  priority: text("priority").notNull().default("medium"),
+  status: text("status").notNull().default("pending"),
+  dueDate: timestamp("due_date"),
+  
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  tenantIdx: index("tasks_tenant_idx").on(table.tenantId),
+  claimIdx: index("tasks_claim_idx").on(table.claimId),
+  assignedIdx: index("tasks_assigned_idx").on(table.assignedTo),
+}));
+
+export const activityLogs = pgTable("activity_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  claimId: varchar("claim_id").references(() => claims.id),
+  taskId: varchar("task_id").references(() => tasks.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  action: text("action").notNull(),
+  details: jsonb("details").default({}),
+  note: text("note"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  tenantIdx: index("activity_logs_tenant_idx").on(table.tenantId),
+  claimIdx: index("activity_logs_claim_idx").on(table.claimId),
+}));
+
+export const insertTenantSchema = createInsertSchema(tenants).omit({
+  id: true,
+  createdAt: true,
 });
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertClaimSchema = createInsertSchema(claims).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTenant = z.infer<typeof insertTenantSchema>;
+export type Tenant = typeof tenants.$inferSelect;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export type InsertClaim = z.infer<typeof insertClaimSchema>;
+export type Claim = typeof claims.$inferSelect;
+
+export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type Task = typeof tasks.$inferSelect;
+
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+export type ActivityLog = typeof activityLogs.$inferSelect;
