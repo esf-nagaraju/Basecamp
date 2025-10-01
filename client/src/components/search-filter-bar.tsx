@@ -11,19 +11,38 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 
-export function SearchFilterBar() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+interface SearchFilterBarProps {
+  onFilterChange?: (filters: any) => void;
+}
 
-  const removeFilter = (filter: string) => {
-    setActiveFilters(activeFilters.filter((f) => f !== filter));
-    console.log(`Removed filter: ${filter}`);
+export function SearchFilterBar({ onFilterChange }: SearchFilterBarProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>();
+  const [ageFilter, setAgeFilter] = useState<string>();
+
+  const applyFilters = (search?: string, status?: string, age?: string) => {
+    const filters: any = {};
+    if (search) filters.search = search;
+    if (status) filters.status = status;
+    if (age) {
+      const [min, max] = age.split("-");
+      if (max === "+") {
+        filters.minAge = parseInt(min);
+      } else {
+        filters.minAge = parseInt(min);
+        filters.maxAge = parseInt(max);
+      }
+    }
+    onFilterChange?.(filters);
   };
 
-  const addFilter = (filter: string) => {
-    if (!activeFilters.includes(filter)) {
-      setActiveFilters([...activeFilters, filter]);
-      console.log(`Added filter: ${filter}`);
+  const removeFilter = (type: "status" | "age") => {
+    if (type === "status") {
+      setStatusFilter(undefined);
+      applyFilters(searchTerm, undefined, ageFilter);
+    } else {
+      setAgeFilter(undefined);
+      applyFilters(searchTerm, statusFilter, undefined);
     }
   };
 
@@ -37,15 +56,19 @@ export function SearchFilterBar() {
             className="pl-10"
             value={searchTerm}
             onChange={(e) => {
-              setSearchTerm(e.target.value);
-              console.log("Search:", e.target.value);
+              const value = e.target.value;
+              setSearchTerm(value);
+              applyFilters(value, statusFilter, ageFilter);
             }}
             data-testid="input-search"
           />
         </div>
 
         <div className="flex gap-2">
-          <Select onValueChange={(value) => addFilter(`Status: ${value}`)}>
+          <Select value={statusFilter} onValueChange={(value) => {
+            setStatusFilter(value);
+            applyFilters(searchTerm, value, ageFilter);
+          }}>
             <SelectTrigger className="w-[180px]" data-testid="select-status">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -57,7 +80,10 @@ export function SearchFilterBar() {
             </SelectContent>
           </Select>
 
-          <Select onValueChange={(value) => addFilter(`Age: ${value}`)}>
+          <Select value={ageFilter} onValueChange={(value) => {
+            setAgeFilter(value);
+            applyFilters(searchTerm, statusFilter, value);
+          }}>
             <SelectTrigger className="w-[180px]" data-testid="select-age">
               <SelectValue placeholder="Age Range" />
             </SelectTrigger>
@@ -65,7 +91,7 @@ export function SearchFilterBar() {
               <SelectItem value="0-30">0-30 days</SelectItem>
               <SelectItem value="31-60">31-60 days</SelectItem>
               <SelectItem value="61-90">61-90 days</SelectItem>
-              <SelectItem value="90+">90+ days</SelectItem>
+              <SelectItem value="90-">90+ days</SelectItem>
             </SelectContent>
           </Select>
 
@@ -75,33 +101,50 @@ export function SearchFilterBar() {
         </div>
       </div>
 
-      {activeFilters.length > 0 && (
+      {(statusFilter || ageFilter) && (
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm text-muted-foreground">Active filters:</span>
-          {activeFilters.map((filter) => (
+          {statusFilter && (
             <Badge
-              key={filter}
               variant="secondary"
               className="gap-1"
-              data-testid={`badge-filter-${filter}`}
+              data-testid="badge-filter-status"
             >
-              {filter}
+              Status: {statusFilter}
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-4 w-4 p-0 hover:bg-transparent"
-                onClick={() => removeFilter(filter)}
+                onClick={() => removeFilter("status")}
               >
                 <X className="h-3 w-3" />
               </Button>
             </Badge>
-          ))}
+          )}
+          {ageFilter && (
+            <Badge
+              variant="secondary"
+              className="gap-1"
+              data-testid="badge-filter-age"
+            >
+              Age: {ageFilter} days
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-4 w-4 p-0 hover:bg-transparent"
+                onClick={() => removeFilter("age")}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => {
-              setActiveFilters([]);
-              console.log("Cleared all filters");
+              setStatusFilter(undefined);
+              setAgeFilter(undefined);
+              applyFilters(searchTerm, undefined, undefined);
             }}
             data-testid="button-clear-filters"
           >

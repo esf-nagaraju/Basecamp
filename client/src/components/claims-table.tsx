@@ -25,9 +25,9 @@ export interface Claim {
   invoiceNumber: string;
   payorName: string;
   balanceDue: number;
-  invoiceAge: number;
+  invoiceAge: number | null;
   status: any;
-  slaStatus: "green" | "yellow" | "red";
+  slaStatus: "green" | "yellow" | "red" | null;
   lastAction: string;
 }
 
