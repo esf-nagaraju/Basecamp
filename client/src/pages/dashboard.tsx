@@ -6,7 +6,7 @@ import { ClipboardList, DollarSign, Clock, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { Claim } from "@shared/schema";
+import type { Claim, Task } from "@shared/schema";
 
 export default function Dashboard() {
   const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
@@ -31,6 +31,28 @@ export default function Dashboard() {
       const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch claims');
       return res.json();
+    },
+  });
+
+  const { data: tasks, isLoading: tasksLoading } = useQuery<(Task & { claim?: Claim })[]>({
+    queryKey: ['/api/tasks', 'my-tasks'],
+    queryFn: async () => {
+      const res = await fetch('/api/tasks?status=pending');
+      if (!res.ok) throw new Error('Failed to fetch tasks');
+      const tasksData = await res.json();
+      
+      const tasksWithClaims = await Promise.all(
+        tasksData.map(async (task: Task) => {
+          const claimRes = await fetch(`/api/claims/${task.claimId}`);
+          if (claimRes.ok) {
+            const claim = await claimRes.json();
+            return { ...task, claim };
+          }
+          return task;
+        })
+      );
+      
+      return tasksWithClaims;
     },
   });
 
@@ -83,51 +105,33 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <SearchFilterBar onFilterChange={setFilters} />
-
-        {isError ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-4">
-            <p className="text-destructive">Failed to load claims: {(error as Error)?.message}</p>
-            <Button onClick={() => refetch()} variant="outline" data-testid="button-retry">
-              Retry
-            </Button>
-          </div>
-        ) : claimsLoading ? (
+        {tasksLoading ? (
           <div className="flex items-center justify-center h-64 text-muted-foreground">
-            Loading claims...
+            Loading your tasks...
           </div>
-        ) : !claims || claims.length === 0 ? (
+        ) : !tasks || tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 gap-4">
-            <p className="text-muted-foreground">No claims match your filters</p>
-            {(filters.status || filters.search || filters.minAge) && (
-              <Button 
-                onClick={() => setFilters({})} 
-                variant="outline" 
-                data-testid="button-clear-all-filters"
-              >
-                Clear Filters
-              </Button>
-            )}
+            <p className="text-muted-foreground">No pending tasks assigned to you</p>
           </div>
         ) : (
           <>
             <ClaimsTable
-              claims={claims.map(c => ({
-                id: c.id!,
-                patientName: c.customerName,
-                invoiceNumber: c.invoiceNumber,
-                payorName: c.payorName,
-                balanceDue: parseFloat(c.balanceDue as string || "0"),
-                invoiceAge: c.invoiceAge || 0,
-                status: c.status,
-                slaStatus: (c.slaStatus || "green") as "green" | "yellow" | "red",
-                lastAction: c.assignedTo ? `Assigned to ${c.assignedTo}` : "Unassigned",
+              claims={tasks.map(t => ({
+                id: t.claim?.id || t.claimId,
+                patientName: t.claim?.customerName || "Unknown",
+                invoiceNumber: t.claim?.invoiceNumber || "N/A",
+                payorName: t.claim?.payorName || "N/A",
+                balanceDue: parseFloat(t.claim?.balanceDue as string || "0"),
+                invoiceAge: t.claim?.invoiceAge || 0,
+                status: t.claim?.status || "unknown",
+                slaStatus: (t.claim?.slaStatus || "green") as "green" | "yellow" | "red",
+                lastAction: t.title,
               }))}
               onViewClaim={(claimId) => setSelectedClaimId(claimId)}
             />
 
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <p>Showing {claims.length} claims</p>
+              <p>Showing {tasks.length} tasks</p>
             </div>
           </>
         )}
