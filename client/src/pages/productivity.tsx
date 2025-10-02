@@ -1,7 +1,10 @@
+import { useEffect } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, DollarSign, CheckCircle2, Phone, Clock } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ProductivityRecord {
   id: string;
@@ -140,6 +143,23 @@ const testData: ProductivityRecord[] = [
 ];
 
 export default function Productivity() {
+  const { user, isLoading } = useAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!isLoading && (!user || (user.role !== "lead" && user.role !== "manager"))) {
+      navigate("/");
+    }
+  }, [user, isLoading, navigate]);
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-full">Loading...</div>;
+  }
+
+  if (!user || (user.role !== "lead" && user.role !== "manager")) {
+    return null;
+  }
+
   const totalClaimsProcessed = testData.reduce((sum, record) => sum + record.claimsProcessed, 0);
   const totalRevenue = testData.reduce((sum, record) => sum + record.revenueCollected, 0);
   const totalTasks = testData.reduce((sum, record) => sum + record.tasksCompleted, 0);
