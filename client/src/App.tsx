@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/hooks/useAuth";
 import Dashboard from "@/pages/dashboard";
 import Landing from "@/pages/landing";
+import TaskManagement from "@/pages/task-management";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -27,6 +28,7 @@ function Router() {
           <Route path="/analytics" component={Dashboard} />
           <Route path="/claims" component={Dashboard} />
           <Route path="/denials" component={Dashboard} />
+          <Route path="/task-management" component={TaskManagement} />
           <Route path="/settings" component={Dashboard} />
         </>
       )}

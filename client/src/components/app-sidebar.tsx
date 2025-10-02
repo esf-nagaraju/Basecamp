@@ -8,6 +8,7 @@ import {
   FileText,
   AlertCircle,
   LogOut,
+  Upload,
 } from "lucide-react";
 import {
   Sidebar,
@@ -61,6 +62,12 @@ const menuItems = [
     url: "/denials",
     icon: AlertCircle,
     roles: ["agent", "lead", "manager"],
+  },
+  {
+    title: "Task Management",
+    url: "/task-management",
+    icon: Upload,
+    roles: ["agent", "lead", "manager", "admin"],
   },
 ];
 
