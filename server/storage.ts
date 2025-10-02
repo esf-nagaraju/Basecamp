@@ -51,7 +51,7 @@ export interface IStorage {
   getProductivityMetrics(tenantId: string, userId?: string): Promise<ProductivityMetrics>;
   
   createCsvImport(csvImport: InsertCsvImport): Promise<CsvImport>;
-  updateCsvImport(id: string, tenantId: string, updates: Partial<InsertCsvImport>): Promise<CsvImport | undefined>;
+  updateCsvImport(id: string, tenantId: string, updates: Partial<Omit<CsvImport, 'id' | 'createdAt'>>): Promise<CsvImport | undefined>;
   getCsvImport(id: string, tenantId: string): Promise<CsvImport | undefined>;
   getCsvImports(tenantId: string): Promise<CsvImport[]>;
   bulkCreateCsvImportRows(rows: InsertCsvImportRow[]): Promise<void>;
@@ -420,7 +420,7 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async updateCsvImport(id: string, tenantId: string, updates: Partial<InsertCsvImport>): Promise<CsvImport | undefined> {
+  async updateCsvImport(id: string, tenantId: string, updates: Partial<Omit<CsvImport, 'id' | 'createdAt'>>): Promise<CsvImport | undefined> {
     const result = await db
       .update(csvImports)
       .set(updates)

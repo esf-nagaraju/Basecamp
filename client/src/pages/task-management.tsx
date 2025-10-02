@@ -1,49 +1,122 @@
-import { useState, useCallback } from "react";
-import { Upload, FileText, X } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import { Upload, FileText, X, CheckCircle2, AlertCircle, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import Papa from "papaparse";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+interface CsvImport {
+  id: string;
+  fileName: string;
+  status: string;
+  totalRows: number;
+  processedRows: number;
+  errorRows: number;
+  columns: string[];
+  createdAt: string;
+  completedAt?: string;
+}
+
+interface CsvImportRow {
+  id: string;
+  rowNumber: number;
+  data: Record<string, any>;
+}
 
 export default function TaskManagement() {
-  const [csvData, setCsvData] = useState<any[]>([]);
-  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [fileName, setFileName] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedImportId, setSelectedImportId] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
+
+  const pageSize = 50;
+
+  const { data: imports = [], refetch: refetchImports } = useQuery<CsvImport[]>({
+    queryKey: ['/api/csv-imports'],
+    refetchInterval: (query) => {
+      const hasProcessing = query.state.data?.some((imp: CsvImport) => imp.status === 'processing');
+      return hasProcessing ? 2000 : false;
+    },
+  });
+
+  const { data: selectedImport } = useQuery<CsvImport>({
+    queryKey: ['/api/csv-imports', selectedImportId],
+    enabled: !!selectedImportId,
+    refetchInterval: (query) => {
+      return query.state.data?.status === 'processing' ? 2000 : false;
+    },
+  });
+
+  const { data: rowsData } = useQuery<{
+    rows: CsvImportRow[];
+    totalCount: number;
+    limit: number;
+    offset: number;
+  }>({
+    queryKey: ['/api/csv-imports', selectedImportId, 'rows', pageSize, currentPage * pageSize],
+    enabled: !!selectedImportId,
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/csv-imports', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload file');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setSelectedImportId(data.importId);
+      queryClient.invalidateQueries({ queryKey: ['/api/csv-imports'] });
+      toast({
+        title: "Upload Started",
+        description: "Your file is being processed in the background.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: error.message,
+      });
+    },
+    onSettled: () => {
+      setUploading(false);
+    },
+  });
 
   const handleFileUpload = useCallback((file: File) => {
     if (!file) return;
     
-    const fileName = file.name.toLowerCase();
-    const isCSV = fileName.endsWith('.csv') || file.type === 'text/csv' || file.type === 'application/csv';
+    const fileNameLower = file.name.toLowerCase();
+    const isCSV = fileNameLower.endsWith('.csv') || file.type === 'text/csv' || file.type === 'application/csv';
     
     if (!isCSV) {
-      alert('Please upload a CSV file');
+      toast({
+        variant: "destructive",
+        title: "Invalid File",
+        description: "Please upload a CSV file",
+      });
       return;
     }
 
     setFileName(file.name);
-
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: 'greedy',
-      complete: (results) => {
-        if (results.data && results.data.length > 0) {
-          const headers = results.meta.fields || [];
-          const rows = results.data.filter((row: any) => {
-            return Object.values(row).some(val => val !== null && val !== undefined && val !== '');
-          });
-          
-          setCsvHeaders(headers);
-          setCsvData(rows);
-        }
-      },
-      error: (error) => {
-        console.error('Error parsing CSV:', error);
-        alert('Error parsing CSV file: ' + error.message);
-      },
-    });
-  }, []);
+    setUploading(true);
+    uploadMutation.mutate(file);
+  }, [uploadMutation, toast]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -73,17 +146,38 @@ export default function TaskManagement() {
   }, [handleFileUpload]);
 
   const handleClearData = useCallback(() => {
-    setCsvData([]);
-    setCsvHeaders([]);
     setFileName("");
+    setSelectedImportId("");
+    setCurrentPage(0);
   }, []);
+
+  useEffect(() => {
+    if (imports.length > 0 && !selectedImportId) {
+      setSelectedImportId(imports[0].id);
+    }
+  }, [imports, selectedImportId]);
+
+  const totalPages = rowsData ? Math.ceil(rowsData.totalCount / pageSize) : 0;
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+      case 'processing':
+        return <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />;
+      case 'failed':
+        return <AlertCircle className="h-4 w-4 text-red-600" />;
+      default:
+        return <FileText className="h-4 w-4" />;
+    }
+  };
 
   return (
     <div className="space-y-6 p-6">
       <div>
         <h1 className="text-3xl font-semibold">Task Management</h1>
         <p className="text-muted-foreground mt-1">
-          Upload CSV files containing claim line details for task ingestion
+          Upload CSV files with up to 300,000 rows and 50+ columns for processing
         </p>
       </div>
 
@@ -91,7 +185,7 @@ export default function TaskManagement() {
         <CardHeader>
           <CardTitle>Upload Claim Data</CardTitle>
           <CardDescription>
-            Drag and drop a CSV file or click to browse
+            Drag and drop a CSV file or click to browse - handles large files with 300K+ rows
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -104,12 +198,16 @@ export default function TaskManagement() {
               ${isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}
             `}
           >
-            <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            {uploading ? (
+              <Loader2 className="h-12 w-12 mx-auto mb-4 text-primary animate-spin" />
+            ) : (
+              <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            )}
             <h3 className="text-lg font-medium mb-2">
-              {isDragging ? 'Drop file here' : 'Upload CSV File'}
+              {uploading ? 'Uploading...' : isDragging ? 'Drop file here' : 'Upload CSV File'}
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Drag and drop your CSV file here, or click to browse
+              {uploading ? 'Please wait while your file is being uploaded' : 'Drag and drop your CSV file here, or click to browse'}
             </p>
             <input
               type="file"
@@ -118,11 +216,13 @@ export default function TaskManagement() {
               className="hidden"
               id="file-upload"
               data-testid="input-file-upload"
+              disabled={uploading}
             />
             <Button
               variant="outline"
               onClick={() => document.getElementById('file-upload')?.click()}
               data-testid="button-browse-files"
+              disabled={uploading}
             >
               <FileText className="h-4 w-4 mr-2" />
               Browse Files
@@ -150,23 +250,83 @@ export default function TaskManagement() {
         </CardContent>
       </Card>
 
-      {csvData.length > 0 && (
+      {imports.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Upload History</CardTitle>
+            <CardDescription>Select an import to view its data</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {imports.map((imp) => (
+                <div
+                  key={imp.id}
+                  className={`
+                    flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors
+                    ${selectedImportId === imp.id ? 'border-primary bg-primary/5' : 'border-muted hover-elevate'}
+                  `}
+                  onClick={() => {
+                    setSelectedImportId(imp.id);
+                    setCurrentPage(0);
+                  }}
+                  data-testid={`import-item-${imp.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    {getStatusIcon(imp.status)}
+                    <div>
+                      <p className="font-medium text-sm">{imp.fileName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {imp.status === 'completed' 
+                          ? `${imp.totalRows.toLocaleString()} rows, ${imp.columns.length} columns`
+                          : imp.status === 'processing'
+                          ? `Processing: ${imp.processedRows.toLocaleString()} of ${imp.totalRows.toLocaleString()} rows`
+                          : imp.status}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(imp.createdAt).toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedImport && selectedImport.status === 'completed' && rowsData && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Uploaded Data Preview</CardTitle>
+                <CardTitle>Data Preview</CardTitle>
                 <CardDescription>
-                  Showing {csvData.length} rows and {csvHeaders.length} columns
+                  Showing {rowsData.rows.length} of {rowsData.totalCount.toLocaleString()} rows
                 </CardDescription>
               </div>
-              <Button
-                variant="outline"
-                onClick={handleClearData}
-                data-testid="button-clear-data"
-              >
-                Clear Data
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                  disabled={currentPage === 0}
+                  data-testid="button-prev-page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage + 1} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                  disabled={currentPage >= totalPages - 1}
+                  data-testid="button-next-page"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -174,7 +334,8 @@ export default function TaskManagement() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {csvHeaders.map((header, index) => (
+                    <TableHead className="font-semibold w-16">Row #</TableHead>
+                    {selectedImport.columns.map((header, index) => (
                       <TableHead key={index} className="font-semibold">
                         {header}
                       </TableHead>
@@ -182,11 +343,12 @@ export default function TaskManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {csvData.map((row: any, rowIndex) => (
-                    <TableRow key={rowIndex}>
-                      {csvHeaders.map((header, cellIndex) => (
+                  {rowsData.rows.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="font-medium">{row.rowNumber}</TableCell>
+                      {selectedImport.columns.map((header, cellIndex) => (
                         <TableCell key={cellIndex}>
-                          {row[header] || ''}
+                          {row.data[header] || ''}
                         </TableCell>
                       ))}
                     </TableRow>
