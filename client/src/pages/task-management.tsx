@@ -58,6 +58,17 @@ export default function TaskManagement() {
     offset: number;
   }>({
     queryKey: ['/api/csv-imports', selectedImportId, 'rows', pageSize, currentPage * pageSize],
+    queryFn: async () => {
+      const offset = currentPage * pageSize;
+      const response = await fetch(
+        `/api/csv-imports/${selectedImportId}/rows?limit=${pageSize}&offset=${offset}`,
+        { credentials: 'include' }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch rows');
+      }
+      return response.json();
+    },
     enabled: !!selectedImportId,
   });
 
@@ -156,6 +167,10 @@ export default function TaskManagement() {
       setSelectedImportId(imports[0].id);
     }
   }, [imports, selectedImportId]);
+
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [selectedImportId]);
 
   const totalPages = rowsData ? Math.ceil(rowsData.totalCount / pageSize) : 0;
 
@@ -321,7 +336,7 @@ export default function TaskManagement() {
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
-                  disabled={currentPage >= totalPages - 1}
+                  disabled={currentPage >= totalPages - 1 || totalPages === 0}
                   data-testid="button-next-page"
                 >
                   <ChevronRight className="h-4 w-4" />

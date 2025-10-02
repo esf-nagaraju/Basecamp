@@ -173,9 +173,7 @@ export const csvImportRows = pgTable("csv_import_rows", {
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
-  importIdx: index("csv_import_rows_import_idx").on(table.importId),
-  tenantIdx: index("csv_import_rows_tenant_idx").on(table.tenantId),
-  rowNumberIdx: index("csv_import_rows_row_number_idx").on(table.importId, table.rowNumber),
+  compositeIdx: index("csv_import_rows_composite_idx").on(table.tenantId, table.importId, table.rowNumber),
 }));
 
 export const insertTenantSchema = createInsertSchema(tenants).omit({
