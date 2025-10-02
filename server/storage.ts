@@ -12,11 +12,17 @@ import {
   type InsertTask,
   type ActivityLog,
   type InsertActivityLog,
+  type CsvImport,
+  type InsertCsvImport,
+  type CsvImportRow,
+  type InsertCsvImportRow,
   users,
   tenants,
   claims,
   tasks,
   activityLogs,
+  csvImports,
+  csvImportRows,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -43,6 +49,14 @@ export interface IStorage {
   getActivityLogs(claimId: string, tenantId: string): Promise<ActivityLog[]>;
   
   getProductivityMetrics(tenantId: string, userId?: string): Promise<ProductivityMetrics>;
+  
+  createCsvImport(csvImport: InsertCsvImport): Promise<CsvImport>;
+  updateCsvImport(id: string, tenantId: string, updates: Partial<InsertCsvImport>): Promise<CsvImport | undefined>;
+  getCsvImport(id: string, tenantId: string): Promise<CsvImport | undefined>;
+  getCsvImports(tenantId: string): Promise<CsvImport[]>;
+  bulkCreateCsvImportRows(rows: InsertCsvImportRow[]): Promise<void>;
+  getCsvImportRows(importId: string, tenantId: string, limit?: number, offset?: number): Promise<CsvImportRow[]>;
+  getCsvImportRowCount(importId: string, tenantId: string): Promise<number>;
 }
 
 export interface ClaimFilters {
@@ -399,6 +413,65 @@ export class DbStorage implements IStorage {
       touchesPerClaim: totalClaims > 0 ? Math.round(activityCount / totalClaims * 10) / 10 : 0,
       totalBalance,
     };
+  }
+
+  async createCsvImport(csvImport: InsertCsvImport): Promise<CsvImport> {
+    const result = await db.insert(csvImports).values(csvImport).returning();
+    return result[0];
+  }
+
+  async updateCsvImport(id: string, tenantId: string, updates: Partial<InsertCsvImport>): Promise<CsvImport | undefined> {
+    const result = await db
+      .update(csvImports)
+      .set(updates)
+      .where(and(eq(csvImports.id, id), eq(csvImports.tenantId, tenantId)))
+      .returning();
+    return result[0];
+  }
+
+  async getCsvImport(id: string, tenantId: string): Promise<CsvImport | undefined> {
+    const result = await db
+      .select()
+      .from(csvImports)
+      .where(and(eq(csvImports.id, id), eq(csvImports.tenantId, tenantId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getCsvImports(tenantId: string): Promise<CsvImport[]> {
+    return await db
+      .select()
+      .from(csvImports)
+      .where(eq(csvImports.tenantId, tenantId))
+      .orderBy(desc(csvImports.createdAt));
+  }
+
+  async bulkCreateCsvImportRows(rows: InsertCsvImportRow[]): Promise<void> {
+    if (rows.length === 0) return;
+    
+    const batchSize = 1000;
+    for (let i = 0; i < rows.length; i += batchSize) {
+      const batch = rows.slice(i, i + batchSize);
+      await db.insert(csvImportRows).values(batch);
+    }
+  }
+
+  async getCsvImportRows(importId: string, tenantId: string, limit: number = 50, offset: number = 0): Promise<CsvImportRow[]> {
+    return await db
+      .select()
+      .from(csvImportRows)
+      .where(and(eq(csvImportRows.importId, importId), eq(csvImportRows.tenantId, tenantId)))
+      .orderBy(csvImportRows.rowNumber)
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getCsvImportRowCount(importId: string, tenantId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(csvImportRows)
+      .where(and(eq(csvImportRows.importId, importId), eq(csvImportRows.tenantId, tenantId)));
+    return Number(result[0]?.count || 0);
   }
 }
 

@@ -4,6 +4,9 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertClaimSchema, insertTaskSchema, insertActivityLogSchema } from "@shared/schema";
 import { z } from "zod";
+import multer from "multer";
+import Papa from "papaparse";
+import { Readable } from "stream";
 
 declare global {
   namespace Express {
@@ -340,6 +343,162 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating tasks:", error);
       res.status(500).json({ message: "Failed to generate tasks" });
+    }
+  });
+
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 100 * 1024 * 1024,
+    },
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype === 'text/csv' || file.originalname.toLowerCase().endsWith('.csv')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only CSV files are allowed'));
+      }
+    },
+  });
+
+  app.post('/api/csv-imports', isAuthenticated, upload.single('file'), async (req: any, res) => {
+    try {
+      const { tenantId, userId } = await getUserContext(req);
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const csvImport = await storage.createCsvImport({
+        tenantId,
+        userId,
+        fileName: req.file.originalname,
+        status: 'processing',
+        totalRows: 0,
+        processedRows: 0,
+        errorRows: 0,
+        columns: [],
+      });
+
+      res.json({ importId: csvImport.id, status: 'processing' });
+
+      setImmediate(async () => {
+        try {
+          const fileContent = req.file.buffer.toString('utf-8');
+          const stream = Readable.from(fileContent);
+          
+          let columns: string[] = [];
+          let rowNumber = 0;
+          let rowsBatch: any[] = [];
+          const batchSize = 1000;
+
+          Papa.parse(stream, {
+            header: true,
+            skipEmptyLines: 'greedy',
+            step: async (result: any, parser: any) => {
+              if (rowNumber === 0) {
+                columns = result.meta.fields || [];
+                storage.updateCsvImport(csvImport.id, tenantId, { columns });
+              }
+
+              const hasData = Object.values(result.data).some(
+                val => val !== null && val !== undefined && val !== ''
+              );
+              
+              if (hasData) {
+                rowNumber++;
+                rowsBatch.push({
+                  importId: csvImport.id,
+                  tenantId,
+                  rowNumber,
+                  data: result.data,
+                });
+
+                if (rowsBatch.length >= batchSize) {
+                  parser.pause();
+                  await storage.bulkCreateCsvImportRows(rowsBatch);
+                  await storage.updateCsvImport(csvImport.id, tenantId, { processedRows: rowNumber });
+                  rowsBatch = [];
+                  parser.resume();
+                }
+              }
+            },
+            complete: async () => {
+              if (rowsBatch.length > 0) {
+                await storage.bulkCreateCsvImportRows(rowsBatch);
+              }
+
+              await storage.updateCsvImport(csvImport.id, tenantId, {
+                status: 'completed',
+                totalRows: rowNumber,
+                processedRows: rowNumber,
+                completedAt: new Date(),
+              });
+            },
+            error: async (error: any) => {
+              console.error('CSV parsing error:', error);
+              await storage.updateCsvImport(csvImport.id, tenantId, {
+                status: 'failed',
+              });
+            },
+          });
+        } catch (error) {
+          console.error('CSV import error:', error);
+          await storage.updateCsvImport(csvImport.id, tenantId, {
+            status: 'failed',
+          });
+        }
+      });
+    } catch (error) {
+      console.error("Error uploading CSV:", error);
+      res.status(500).json({ message: "Failed to upload CSV" });
+    }
+  });
+
+  app.get('/api/csv-imports', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId } = await getUserContext(req);
+      const imports = await storage.getCsvImports(tenantId);
+      res.json(imports);
+    } catch (error) {
+      console.error("Error fetching CSV imports:", error);
+      res.status(500).json({ message: "Failed to fetch CSV imports" });
+    }
+  });
+
+  app.get('/api/csv-imports/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId } = await getUserContext(req);
+      const csvImport = await storage.getCsvImport(req.params.id, tenantId);
+      
+      if (!csvImport) {
+        return res.status(404).json({ message: "CSV import not found" });
+      }
+      
+      res.json(csvImport);
+    } catch (error) {
+      console.error("Error fetching CSV import:", error);
+      res.status(500).json({ message: "Failed to fetch CSV import" });
+    }
+  });
+
+  app.get('/api/csv-imports/:id/rows', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId } = await getUserContext(req);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      
+      const rows = await storage.getCsvImportRows(req.params.id, tenantId, limit, offset);
+      const totalCount = await storage.getCsvImportRowCount(req.params.id, tenantId);
+      
+      res.json({
+        rows,
+        totalCount,
+        limit,
+        offset,
+      });
+    } catch (error) {
+      console.error("Error fetching CSV import rows:", error);
+      res.status(500).json({ message: "Failed to fetch CSV import rows" });
     }
   });
 
