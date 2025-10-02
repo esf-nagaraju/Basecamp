@@ -142,6 +142,42 @@ export const activityLogs = pgTable("activity_logs", {
   claimIdx: index("activity_logs_claim_idx").on(table.claimId),
 }));
 
+export const csvImports = pgTable("csv_imports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  fileName: text("file_name").notNull(),
+  status: text("status").notNull().default("processing"),
+  
+  totalRows: integer("total_rows").default(0),
+  processedRows: integer("processed_rows").default(0),
+  errorRows: integer("error_rows").default(0),
+  
+  columns: jsonb("columns").notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+}, (table) => ({
+  tenantIdx: index("csv_imports_tenant_idx").on(table.tenantId),
+  statusIdx: index("csv_imports_status_idx").on(table.status),
+}));
+
+export const csvImportRows = pgTable("csv_import_rows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  importId: varchar("import_id").notNull().references(() => csvImports.id, { onDelete: 'cascade' }),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  
+  rowNumber: integer("row_number").notNull(),
+  data: jsonb("data").notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  importIdx: index("csv_import_rows_import_idx").on(table.importId),
+  tenantIdx: index("csv_import_rows_tenant_idx").on(table.tenantId),
+  rowNumberIdx: index("csv_import_rows_row_number_idx").on(table.importId, table.rowNumber),
+}));
+
 export const insertTenantSchema = createInsertSchema(tenants).omit({
   id: true,
   createdAt: true,
@@ -178,6 +214,17 @@ export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
   createdAt: true,
 });
 
+export const insertCsvImportSchema = createInsertSchema(csvImports).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export const insertCsvImportRowSchema = createInsertSchema(csvImportRows).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type Tenant = typeof tenants.$inferSelect;
 
@@ -193,3 +240,9 @@ export type Task = typeof tasks.$inferSelect;
 
 export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 export type ActivityLog = typeof activityLogs.$inferSelect;
+
+export type InsertCsvImport = z.infer<typeof insertCsvImportSchema>;
+export type CsvImport = typeof csvImports.$inferSelect;
+
+export type InsertCsvImportRow = z.infer<typeof insertCsvImportRowSchema>;
+export type CsvImportRow = typeof csvImportRows.$inferSelect;
