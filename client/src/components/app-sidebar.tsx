@@ -9,6 +9,7 @@ import {
   AlertCircle,
   LogOut,
   Upload,
+  TrendingUp,
 } from "lucide-react";
 import {
   Sidebar,
@@ -68,6 +69,12 @@ const menuItems = [
     url: "/task-management",
     icon: Upload,
     roles: ["agent", "lead", "manager", "admin"],
+  },
+  {
+    title: "Productivity",
+    url: "/productivity",
+    icon: TrendingUp,
+    roles: ["lead", "manager"],
   },
 ];
 
