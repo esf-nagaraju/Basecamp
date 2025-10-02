@@ -14,7 +14,10 @@ export default function TaskManagement() {
   const handleFileUpload = useCallback((file: File) => {
     if (!file) return;
     
-    if (!file.name.endsWith('.csv')) {
+    const fileName = file.name.toLowerCase();
+    const isCSV = fileName.endsWith('.csv') || file.type === 'text/csv' || file.type === 'application/csv';
+    
+    if (!isCSV) {
       alert('Please upload a CSV file');
       return;
     }
@@ -22,10 +25,14 @@ export default function TaskManagement() {
     setFileName(file.name);
 
     Papa.parse(file, {
+      header: true,
+      skipEmptyLines: 'greedy',
       complete: (results) => {
         if (results.data && results.data.length > 0) {
-          const headers = results.data[0] as string[];
-          const rows = results.data.slice(1);
+          const headers = results.meta.fields || [];
+          const rows = results.data.filter((row: any) => {
+            return Object.values(row).some(val => val !== null && val !== undefined && val !== '');
+          });
           
           setCsvHeaders(headers);
           setCsvData(rows);
@@ -175,11 +182,11 @@ export default function TaskManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {csvData.map((row: any[], rowIndex) => (
+                  {csvData.map((row: any, rowIndex) => (
                     <TableRow key={rowIndex}>
-                      {row.map((cell, cellIndex) => (
+                      {csvHeaders.map((header, cellIndex) => (
                         <TableCell key={cellIndex}>
-                          {cell}
+                          {row[header] || ''}
                         </TableCell>
                       ))}
                     </TableRow>
