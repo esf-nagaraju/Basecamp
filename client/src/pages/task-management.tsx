@@ -420,7 +420,7 @@ export default function TaskManagement() {
                     <SelectValue placeholder="Select resolution category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {metadata?.resolutionCategories
+                    {(metadata?.resolutionCategories || [])
                       .filter(cat => cat && cat.trim() !== '')
                       .map(cat => (
                         <SelectItem key={cat} value={cat}>{cat}</SelectItem>
@@ -448,7 +448,7 @@ export default function TaskManagement() {
                     <SelectValue placeholder="Select root cause category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {metadata?.rootCauseCategories
+                    {(metadata?.rootCauseCategories || [])
                       .filter(cat => cat && cat.trim() !== '')
                       .map(cat => (
                         <SelectItem key={cat} value={cat}>{cat}</SelectItem>
@@ -476,7 +476,7 @@ export default function TaskManagement() {
                     <SelectValue placeholder="Select root cause detail" />
                   </SelectTrigger>
                   <SelectContent>
-                    {metadata?.rootCauseDetails
+                    {(metadata?.rootCauseDetails || [])
                       .filter(detail => detail && detail.trim() !== '')
                       .map(detail => (
                         <SelectItem key={detail} value={detail}>{detail}</SelectItem>
@@ -504,7 +504,7 @@ export default function TaskManagement() {
                     <SelectValue placeholder="Select resolution action" />
                   </SelectTrigger>
                   <SelectContent>
-                    {metadata?.resolutionActions
+                    {(metadata?.resolutionActions || [])
                       .filter(action => action && action.trim() !== '')
                       .map(action => (
                         <SelectItem key={action} value={action}>{action}</SelectItem>
