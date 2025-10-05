@@ -200,17 +200,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { tenantId } = await getUserContext(req);
       
       const filters = {
-        status: req.query.status as string,
+        status: req.query.status ? (Array.isArray(req.query.status) ? req.query.status : [req.query.status]) : undefined,
         assignedTo: req.query.assignedTo as string,
         claimId: req.query.claimId as string,
         priority: req.query.priority as string,
+        client: req.query.client as string,
+        search: req.query.search as string,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 50,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
       };
 
-      const tasks = await storage.getTasks(tenantId, filters);
-      res.json(tasks);
+      const result = await storage.getTasksWithDetails(tenantId, filters);
+      res.json(result);
     } catch (error) {
       console.error("Error fetching tasks:", error);
       res.status(500).json({ message: "Failed to fetch tasks" });
+    }
+  });
+
+  app.get('/api/tasks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId } = await getUserContext(req);
+      const task = await storage.getTaskWithDetails(req.params.id, tenantId);
+      
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      res.json(task);
+    } catch (error) {
+      console.error("Error fetching task:", error);
+      res.status(500).json({ message: "Failed to fetch task" });
     }
   });
 
@@ -244,7 +264,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { tenantId, userId } = await getUserContext(req);
       
-      const allowedFields = ['status', 'assignedTo', 'title', 'description', 'priority', 'dueDate'];
+      const allowedFields = [
+        'status', 'assignedTo', 'title', 'description', 'priority', 'dueDate',
+        'resolutionCategory', 'rootCauseCategory', 'rootCauseDetail', 
+        'resolutionAction', 'notes', 'progressPercent'
+      ];
       const updates: any = {};
       for (const field of allowedFields) {
         if (req.body[field] !== undefined) {
@@ -271,6 +295,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating task:", error);
       res.status(500).json({ message: "Failed to update task" });
+    }
+  });
+
+  app.post('/api/tasks/:id/timer/start', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId } = await getUserContext(req);
+      const task = await storage.startTaskTimer(req.params.id, tenantId);
+      
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      res.json(task);
+    } catch (error) {
+      console.error("Error starting timer:", error);
+      res.status(500).json({ message: "Failed to start timer" });
+    }
+  });
+
+  app.post('/api/tasks/:id/timer/stop', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId } = await getUserContext(req);
+      const task = await storage.stopTaskTimer(req.params.id, tenantId);
+      
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      res.json(task);
+    } catch (error) {
+      console.error("Error stopping timer:", error);
+      res.status(500).json({ message: "Failed to stop timer" });
+    }
+  });
+
+  app.get('/api/task-metadata', isAuthenticated, async (req: any, res) => {
+    try {
+      res.json({
+        resolutionCategories: [
+          'Claim Approved',
+          'Claim Denied',
+          'Claim Pending',
+          'Information Requested',
+          'Appeal Filed',
+          'Payment Received',
+          'Other'
+        ],
+        rootCauseCategories: [
+          'Missing Information',
+          'Coding Error',
+          'Authorization Issue',
+          'Eligibility Problem',
+          'Provider Network Issue',
+          'Billing Error',
+          'Medical Necessity',
+          'Other'
+        ],
+        rootCauseDetails: [
+          'Missing documentation',
+          'Incorrect procedure code',
+          'Prior authorization not obtained',
+          'Patient not eligible on DOS',
+          'Out of network provider',
+          'Duplicate claim',
+          'Services not medically necessary',
+          'Timely filing limit exceeded',
+          'Other'
+        ],
+        resolutionActions: [
+          'Submitted additional documentation',
+          'Corrected coding',
+          'Obtained authorization',
+          'Verified eligibility',
+          'Contacted provider',
+          'Resubmitted claim',
+          'Filed appeal',
+          'Escalated to supervisor',
+          'Other'
+        ]
+      });
+    } catch (error) {
+      console.error("Error fetching task metadata:", error);
+      res.status(500).json({ message: "Failed to fetch metadata" });
     }
   });
 
