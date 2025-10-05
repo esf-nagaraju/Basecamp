@@ -42,8 +42,12 @@ export interface IStorage {
   
   getTask(id: string, tenantId: string): Promise<Task | undefined>;
   getTasks(tenantId: string, filters?: TaskFilters): Promise<Task[]>;
+  getTasksWithDetails(tenantId: string, filters?: TaskFilters): Promise<{ tasks: TaskWithDetails[], totalCount: number }>;
+  getTaskWithDetails(id: string, tenantId: string): Promise<TaskWithDetails | undefined>;
   createTask(task: InsertTask): Promise<Task>;
   updateTask(id: string, tenantId: string, updates: Partial<InsertTask>): Promise<Task | undefined>;
+  startTaskTimer(id: string, tenantId: string): Promise<Task | undefined>;
+  stopTaskTimer(id: string, tenantId: string): Promise<Task | undefined>;
   
   createActivityLog(log: InsertActivityLog): Promise<ActivityLog>;
   getActivityLogs(claimId: string, tenantId: string): Promise<ActivityLog[]>;
@@ -73,10 +77,20 @@ export interface ClaimFilters {
 }
 
 export interface TaskFilters {
-  status?: string;
+  status?: string | string[];
   assignedTo?: string;
   claimId?: string;
   priority?: string;
+  client?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface TaskWithDetails extends Task {
+  claimNumber: string;
+  client: string;
+  assignedToName: string | null;
 }
 
 export interface ProductivityMetrics {
@@ -278,7 +292,11 @@ export class DbStorage implements IStorage {
     const conditions = [eq(tasks.tenantId, tenantId)];
 
     if (filters.status) {
-      conditions.push(eq(tasks.status, filters.status));
+      if (Array.isArray(filters.status)) {
+        conditions.push(inArray(tasks.status, filters.status));
+      } else {
+        conditions.push(eq(tasks.status, filters.status));
+      }
     }
 
     if (filters.assignedTo) {
@@ -325,6 +343,169 @@ export class DbStorage implements IStorage {
     const result = await db
       .update(tasks)
       .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(tasks.id, id), eq(tasks.tenantId, tenantId)))
+      .returning();
+    return result[0];
+  }
+
+  async getTasksWithDetails(tenantId: string, filters: TaskFilters = {}): Promise<{ tasks: TaskWithDetails[], totalCount: number }> {
+    const conditions = [eq(tasks.tenantId, tenantId)];
+
+    if (filters.status) {
+      if (Array.isArray(filters.status)) {
+        conditions.push(inArray(tasks.status, filters.status));
+      } else {
+        conditions.push(eq(tasks.status, filters.status));
+      }
+    }
+
+    if (filters.assignedTo) {
+      conditions.push(eq(tasks.assignedTo, filters.assignedTo));
+    }
+
+    if (filters.claimId) {
+      conditions.push(eq(tasks.claimId, filters.claimId));
+    }
+
+    if (filters.priority) {
+      conditions.push(eq(tasks.priority, filters.priority));
+    }
+
+    if (filters.client) {
+      conditions.push(like(claims.payorName, `%${filters.client}%`));
+    }
+
+    if (filters.search) {
+      conditions.push(
+        or(
+          like(claims.invoiceNumber, `%${filters.search}%`),
+          like(claims.payorName, `%${filters.search}%`)
+        )!
+      );
+    }
+
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tasks)
+      .innerJoin(claims, eq(tasks.claimId, claims.id))
+      .where(and(...conditions));
+
+    const totalCount = Number(countResult[0]?.count || 0);
+
+    let query = db
+      .select({
+        id: tasks.id,
+        tenantId: tasks.tenantId,
+        claimId: tasks.claimId,
+        assignedTo: tasks.assignedTo,
+        title: tasks.title,
+        description: tasks.description,
+        priority: tasks.priority,
+        status: tasks.status,
+        dueDate: tasks.dueDate,
+        resolutionCategory: tasks.resolutionCategory,
+        rootCauseCategory: tasks.rootCauseCategory,
+        rootCauseDetail: tasks.rootCauseDetail,
+        resolutionAction: tasks.resolutionAction,
+        notes: tasks.notes,
+        progressPercent: tasks.progressPercent,
+        totalTimeSeconds: tasks.totalTimeSeconds,
+        activeTimerStartedAt: tasks.activeTimerStartedAt,
+        startedAt: tasks.startedAt,
+        completedAt: tasks.completedAt,
+        createdAt: tasks.createdAt,
+        updatedAt: tasks.updatedAt,
+        claimNumber: claims.invoiceNumber,
+        client: claims.payorName,
+        assignedToName: users.fullName,
+      })
+      .from(tasks)
+      .innerJoin(claims, eq(tasks.claimId, claims.id))
+      .leftJoin(users, eq(tasks.assignedTo, users.id))
+      .where(and(...conditions))
+      .orderBy(desc(tasks.createdAt));
+
+    if (filters.limit) {
+      query = query.limit(filters.limit) as any;
+    }
+
+    if (filters.offset) {
+      query = query.offset(filters.offset) as any;
+    }
+
+    const results = await query;
+
+    return {
+      tasks: results as TaskWithDetails[],
+      totalCount,
+    };
+  }
+
+  async getTaskWithDetails(id: string, tenantId: string): Promise<TaskWithDetails | undefined> {
+    const result = await db
+      .select({
+        id: tasks.id,
+        tenantId: tasks.tenantId,
+        claimId: tasks.claimId,
+        assignedTo: tasks.assignedTo,
+        title: tasks.title,
+        description: tasks.description,
+        priority: tasks.priority,
+        status: tasks.status,
+        dueDate: tasks.dueDate,
+        resolutionCategory: tasks.resolutionCategory,
+        rootCauseCategory: tasks.rootCauseCategory,
+        rootCauseDetail: tasks.rootCauseDetail,
+        resolutionAction: tasks.resolutionAction,
+        notes: tasks.notes,
+        progressPercent: tasks.progressPercent,
+        totalTimeSeconds: tasks.totalTimeSeconds,
+        activeTimerStartedAt: tasks.activeTimerStartedAt,
+        startedAt: tasks.startedAt,
+        completedAt: tasks.completedAt,
+        createdAt: tasks.createdAt,
+        updatedAt: tasks.updatedAt,
+        claimNumber: claims.invoiceNumber,
+        client: claims.payorName,
+        assignedToName: users.fullName,
+      })
+      .from(tasks)
+      .innerJoin(claims, eq(tasks.claimId, claims.id))
+      .leftJoin(users, eq(tasks.assignedTo, users.id))
+      .where(and(eq(tasks.id, id), eq(tasks.tenantId, tenantId)))
+      .limit(1);
+
+    return result[0] as TaskWithDetails | undefined;
+  }
+
+  async startTaskTimer(id: string, tenantId: string): Promise<Task | undefined> {
+    const result = await db
+      .update(tasks)
+      .set({ 
+        activeTimerStartedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(tasks.id, id), eq(tasks.tenantId, tenantId)))
+      .returning();
+    return result[0];
+  }
+
+  async stopTaskTimer(id: string, tenantId: string): Promise<Task | undefined> {
+    const task = await this.getTask(id, tenantId);
+    if (!task || !task.activeTimerStartedAt) {
+      return task;
+    }
+
+    const elapsedSeconds = Math.floor((Date.now() - task.activeTimerStartedAt.getTime()) / 1000);
+    const newTotalSeconds = (task.totalTimeSeconds || 0) + elapsedSeconds;
+
+    const result = await db
+      .update(tasks)
+      .set({
+        totalTimeSeconds: newTotalSeconds,
+        activeTimerStartedAt: null,
+        updatedAt: new Date(),
+      })
       .where(and(eq(tasks.id, id), eq(tasks.tenantId, tenantId)))
       .returning();
     return result[0];
