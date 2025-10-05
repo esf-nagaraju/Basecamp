@@ -125,7 +125,9 @@ export default function TaskManagement() {
   const totalCount = tasksData?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  const uniqueClients = Array.from(new Set(tasks.map(t => t.client))).sort();
+  const uniqueClients = Array.from(new Set(tasks.map(t => t.client)))
+    .filter(client => client && client.trim() !== '')
+    .sort();
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -415,9 +417,11 @@ export default function TaskManagement() {
                     <SelectValue placeholder="Select resolution category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {metadata?.resolutionCategories.map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
+                    {metadata?.resolutionCategories
+                      .filter(cat => cat && cat.trim() !== '')
+                      .map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -441,9 +445,11 @@ export default function TaskManagement() {
                     <SelectValue placeholder="Select root cause category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {metadata?.rootCauseCategories.map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
+                    {metadata?.rootCauseCategories
+                      .filter(cat => cat && cat.trim() !== '')
+                      .map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -467,9 +473,11 @@ export default function TaskManagement() {
                     <SelectValue placeholder="Select root cause detail" />
                   </SelectTrigger>
                   <SelectContent>
-                    {metadata?.rootCauseDetails.map(detail => (
-                      <SelectItem key={detail} value={detail}>{detail}</SelectItem>
-                    ))}
+                    {metadata?.rootCauseDetails
+                      .filter(detail => detail && detail.trim() !== '')
+                      .map(detail => (
+                        <SelectItem key={detail} value={detail}>{detail}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -493,9 +501,11 @@ export default function TaskManagement() {
                     <SelectValue placeholder="Select resolution action" />
                   </SelectTrigger>
                   <SelectContent>
-                    {metadata?.resolutionActions.map(action => (
-                      <SelectItem key={action} value={action}>{action}</SelectItem>
-                    ))}
+                    {metadata?.resolutionActions
+                      .filter(action => action && action.trim() !== '')
+                      .map(action => (
+                        <SelectItem key={action} value={action}>{action}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
