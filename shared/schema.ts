@@ -114,6 +114,16 @@ export const tasks = pgTable("tasks", {
   status: text("status").notNull().default("pending"),
   dueDate: timestamp("due_date"),
   
+  resolutionCategory: text("resolution_category"),
+  rootCauseCategory: text("root_cause_category"),
+  rootCauseDetail: text("root_cause_detail"),
+  resolutionAction: text("resolution_action"),
+  notes: text("notes"),
+  
+  progressPercent: integer("progress_percent").default(0),
+  totalTimeSeconds: integer("total_time_seconds").default(0),
+  activeTimerStartedAt: timestamp("active_timer_started_at"),
+  
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
   
@@ -123,6 +133,8 @@ export const tasks = pgTable("tasks", {
   tenantIdx: index("tasks_tenant_idx").on(table.tenantId),
   claimIdx: index("tasks_claim_idx").on(table.claimId),
   assignedIdx: index("tasks_assigned_idx").on(table.assignedTo),
+  statusIdx: index("tasks_status_idx").on(table.tenantId, table.status),
+  priorityIdx: index("tasks_priority_idx").on(table.tenantId, table.priority),
 }));
 
 export const activityLogs = pgTable("activity_logs", {
