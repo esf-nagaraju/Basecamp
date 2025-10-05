@@ -208,14 +208,14 @@ export default function TaskManagement() {
                 </SelectContent>
               </Select>
               <Select
-                value={selectedStatuses.join(',')}
-                onValueChange={(value) => setSelectedStatuses(value ? value.split(',') : [])}
+                value={selectedStatuses.length > 0 ? selectedStatuses.join(',') : 'all'}
+                onValueChange={(value) => setSelectedStatuses(value === 'all' ? [] : value.split(','))}
               >
                 <SelectTrigger className="w-48" data-testid="select-status">
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="in progress">In Progress</SelectItem>
                   <SelectItem value="escalated">Escalated</SelectItem>
