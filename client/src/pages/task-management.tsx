@@ -45,6 +45,7 @@ export default function TaskManagement() {
   const [selectedTask, setSelectedTask] = useState<TaskWithDetails | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(Date.now());
+  const [localTaskChanges, setLocalTaskChanges] = useState<Partial<TaskWithDetails>>({});
   const { toast } = useToast();
 
   const pageSize = 50;
@@ -55,6 +56,12 @@ export default function TaskManagement() {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!isModalOpen) {
+      setLocalTaskChanges({});
+    }
+  }, [isModalOpen, selectedTask?.id]);
 
   const { data: tasksData } = useQuery<{ tasks: TaskWithDetails[], totalCount: number }>({
     queryKey: ['/api/tasks', searchTerm, selectedClient, selectedStatuses, pageSize, currentPage * pageSize],
@@ -84,7 +91,7 @@ export default function TaskManagement() {
   const { data: taskDetail, refetch: refetchTaskDetail } = useQuery<TaskWithDetails>({
     queryKey: ['/api/tasks', selectedTask?.id],
     enabled: !!selectedTask?.id,
-    refetchInterval: 1000,
+    refetchInterval: isModalOpen ? false : 1000,
   });
 
   const updateTaskMutation = useMutation({
@@ -94,6 +101,7 @@ export default function TaskManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
       refetchTaskDetail();
+      setLocalTaskChanges({});
       toast({
         title: "Success",
         description: "Task updated successfully",
@@ -166,14 +174,10 @@ export default function TaskManagement() {
   const handleSaveTask = () => {
     if (!taskDetail) return;
     
-    updateTaskMutation.mutate({
-      resolutionCategory: taskDetail.resolutionCategory,
-      rootCauseCategory: taskDetail.rootCauseCategory,
-      rootCauseDetail: taskDetail.rootCauseDetail,
-      resolutionAction: taskDetail.resolutionAction,
-      notes: taskDetail.notes,
-    });
+    updateTaskMutation.mutate(localTaskChanges);
   };
+
+  const currentTaskData = taskDetail ? { ...taskDetail, ...localTaskChanges } : null;
 
   return (
     <div className="h-full flex flex-col p-6 space-y-6">
@@ -340,16 +344,16 @@ export default function TaskManagement() {
             </DialogDescription>
           </DialogHeader>
           
-          {taskDetail && (
+          {currentTaskData && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Claim Number</label>
-                  <div className="text-lg font-semibold">{taskDetail.claimNumber}</div>
+                  <div className="text-lg font-semibold">{currentTaskData.claimNumber}</div>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Client</label>
-                  <div className="text-lg">{taskDetail.client}</div>
+                  <div className="text-lg">{currentTaskData.client}</div>
                 </div>
               </div>
 
@@ -357,16 +361,16 @@ export default function TaskManagement() {
                 <div>
                   <label className="text-sm font-medium">Priority</label>
                   <div className="mt-1">
-                    <Badge variant={getPriorityBadgeVariant(taskDetail.priority)}>
-                      {taskDetail.priority}
+                    <Badge variant={getPriorityBadgeVariant(currentTaskData.priority)}>
+                      {currentTaskData.priority}
                     </Badge>
                   </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Status</label>
                   <div className="mt-1">
-                    <Badge variant={getStatusBadgeVariant(taskDetail.status)}>
-                      {taskDetail.status}
+                    <Badge variant={getStatusBadgeVariant(currentTaskData.status)}>
+                      {currentTaskData.status}
                     </Badge>
                   </div>
                 </div>
@@ -376,12 +380,12 @@ export default function TaskManagement() {
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium">Time Tracking</label>
                   <div className="flex items-center gap-2">
-                    <span className="text-lg font-semibold">{getActiveTime(taskDetail)}</span>
-                    {taskDetail.activeTimerStartedAt ? (
+                    <span className="text-lg font-semibold">{getActiveTime(currentTaskData)}</span>
+                    {currentTaskData.activeTimerStartedAt ? (
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => stopTimerMutation.mutate(taskDetail.id)}
+                        onClick={() => stopTimerMutation.mutate(currentTaskData.id)}
                         data-testid="button-stop-timer"
                       >
                         <Pause className="h-4 w-4 mr-1" />
@@ -390,7 +394,7 @@ export default function TaskManagement() {
                     ) : (
                       <Button
                         size="sm"
-                        onClick={() => startTimerMutation.mutate(taskDetail.id)}
+                        onClick={() => startTimerMutation.mutate(currentTaskData.id)}
                         data-testid="button-start-timer"
                       >
                         <Play className="h-4 w-4 mr-1" />
@@ -404,16 +408,9 @@ export default function TaskManagement() {
               <div>
                 <label className="text-sm font-medium">Resolution Category</label>
                 <Select
-                  value={taskDetail.resolutionCategory || ''}
+                  value={currentTaskData.resolutionCategory || ''}
                   onValueChange={(value) => {
-                    if (taskDetail) {
-                      refetchTaskDetail().then(() => {
-                        queryClient.setQueryData(['/api/tasks', taskDetail.id], {
-                          ...taskDetail,
-                          resolutionCategory: value
-                        });
-                      });
-                    }
+                    setLocalTaskChanges(prev => ({ ...prev, resolutionCategory: value }));
                   }}
                 >
                   <SelectTrigger className="mt-1" data-testid="select-resolution-category">
@@ -432,16 +429,9 @@ export default function TaskManagement() {
               <div>
                 <label className="text-sm font-medium">Root Cause Category</label>
                 <Select
-                  value={taskDetail.rootCauseCategory || ''}
+                  value={currentTaskData.rootCauseCategory || ''}
                   onValueChange={(value) => {
-                    if (taskDetail) {
-                      refetchTaskDetail().then(() => {
-                        queryClient.setQueryData(['/api/tasks', taskDetail.id], {
-                          ...taskDetail,
-                          rootCauseCategory: value
-                        });
-                      });
-                    }
+                    setLocalTaskChanges(prev => ({ ...prev, rootCauseCategory: value }));
                   }}
                 >
                   <SelectTrigger className="mt-1" data-testid="select-root-cause-category">
@@ -460,16 +450,9 @@ export default function TaskManagement() {
               <div>
                 <label className="text-sm font-medium">Root Cause Detail</label>
                 <Select
-                  value={taskDetail.rootCauseDetail || ''}
+                  value={currentTaskData.rootCauseDetail || ''}
                   onValueChange={(value) => {
-                    if (taskDetail) {
-                      refetchTaskDetail().then(() => {
-                        queryClient.setQueryData(['/api/tasks', taskDetail.id], {
-                          ...taskDetail,
-                          rootCauseDetail: value
-                        });
-                      });
-                    }
+                    setLocalTaskChanges(prev => ({ ...prev, rootCauseDetail: value }));
                   }}
                 >
                   <SelectTrigger className="mt-1" data-testid="select-root-cause-detail">
@@ -488,16 +471,9 @@ export default function TaskManagement() {
               <div>
                 <label className="text-sm font-medium">Resolution/Action Taken</label>
                 <Select
-                  value={taskDetail.resolutionAction || ''}
+                  value={currentTaskData.resolutionAction || ''}
                   onValueChange={(value) => {
-                    if (taskDetail) {
-                      refetchTaskDetail().then(() => {
-                        queryClient.setQueryData(['/api/tasks', taskDetail.id], {
-                          ...taskDetail,
-                          resolutionAction: value
-                        });
-                      });
-                    }
+                    setLocalTaskChanges(prev => ({ ...prev, resolutionAction: value }));
                   }}
                 >
                   <SelectTrigger className="mt-1" data-testid="select-resolution-action">
@@ -516,14 +492,9 @@ export default function TaskManagement() {
               <div>
                 <label className="text-sm font-medium">Notes</label>
                 <Textarea
-                  value={taskDetail.notes || ''}
+                  value={currentTaskData.notes || ''}
                   onChange={(e) => {
-                    if (taskDetail) {
-                      queryClient.setQueryData(['/api/tasks', taskDetail.id], {
-                        ...taskDetail,
-                        notes: e.target.value
-                      });
-                    }
+                    setLocalTaskChanges(prev => ({ ...prev, notes: e.target.value }));
                   }}
                   placeholder="Add notes about this task..."
                   className="mt-1 min-h-24"
