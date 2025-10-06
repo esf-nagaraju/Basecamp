@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -366,19 +367,40 @@ export default function TaskManagement() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Priority</label>
-                  <div className="mt-1">
-                    <Badge variant={getPriorityBadgeVariant(currentTaskData.priority)}>
-                      {currentTaskData.priority}
-                    </Badge>
-                  </div>
+                  <Select
+                    value={currentTaskData.priority || ''}
+                    onValueChange={(value) => {
+                      setLocalTaskChanges(prev => ({ ...prev, priority: value }));
+                    }}
+                  >
+                    <SelectTrigger className="mt-1" data-testid="select-priority">
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Status</label>
-                  <div className="mt-1">
-                    <Badge variant={getStatusBadgeVariant(currentTaskData.status)}>
-                      {currentTaskData.status}
-                    </Badge>
-                  </div>
+                  <Select
+                    value={currentTaskData.status || ''}
+                    onValueChange={(value) => {
+                      setLocalTaskChanges(prev => ({ ...prev, status: value }));
+                    }}
+                  >
+                    <SelectTrigger className="mt-1" data-testid="select-status">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="escalated">Escalated</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -407,6 +429,37 @@ export default function TaskManagement() {
                         Start
                       </Button>
                     )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Progress</label>
+                <div className="mt-2 space-y-3">
+                  <div className="flex items-center gap-4">
+                    <Slider
+                      value={[currentTaskData.progressPercent || 0]}
+                      onValueChange={(value) => {
+                        setLocalTaskChanges(prev => ({ ...prev, progressPercent: value[0] }));
+                      }}
+                      max={100}
+                      step={5}
+                      className="flex-1"
+                      data-testid="slider-progress"
+                    />
+                    <Input
+                      type="number"
+                      value={currentTaskData.progressPercent || 0}
+                      onChange={(e) => {
+                        const value = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                        setLocalTaskChanges(prev => ({ ...prev, progressPercent: value }));
+                      }}
+                      min={0}
+                      max={100}
+                      className="w-20"
+                      data-testid="input-progress"
+                    />
+                    <span className="text-sm text-muted-foreground">%</span>
                   </div>
                 </div>
               </div>
