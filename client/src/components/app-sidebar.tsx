@@ -22,6 +22,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,7 @@ const menuItems = [
 export function AppSidebar() {
   const [location] = useLocation();
   const { user } = useAuth();
+  const { state } = useSidebar();
   const currentRole = user?.role || "agent";
 
   const filteredItems = menuItems.filter((item) =>
@@ -120,16 +122,18 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <ClipboardList className="h-6 w-6" />
           </div>
-          <div>
-            <h2 className="text-lg font-semibold">ClaimFlowPro</h2>
-            <p className="text-xs text-muted-foreground">AR Management</p>
-          </div>
+          {state === "expanded" && (
+            <div>
+              <h2 className="text-lg font-semibold">ClaimFlowPro</h2>
+              <p className="text-xs text-muted-foreground">AR Management</p>
+            </div>
+          )}
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -172,34 +176,49 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-4 space-y-2">
-        <div className="flex items-center gap-3">
-          <Avatar>
-            {user?.profileImageUrl && (
-              <AvatarImage src={user.profileImageUrl} alt={user.fullName || user.email || 'User'} />
-            )}
-            <AvatarFallback className="bg-primary text-primary-foreground">
-              {getInitials(user)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium truncate" data-testid="text-user-name">
-              {user?.fullName || user?.email || 'User'}
-            </p>
-            <p className="text-xs text-muted-foreground" data-testid="text-user-role">
-              {getRoleLabel(currentRole)}
-            </p>
+        {state === "expanded" ? (
+          <>
+            <div className="flex items-center gap-3">
+              <Avatar>
+                {user?.profileImageUrl && (
+                  <AvatarImage src={user.profileImageUrl} alt={user.fullName || user.email || 'User'} />
+                )}
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  {getInitials(user)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 overflow-hidden">
+                <p className="text-sm font-medium truncate" data-testid="text-user-name">
+                  {user?.fullName || user?.email || 'User'}
+                </p>
+                <p className="text-xs text-muted-foreground" data-testid="text-user-role">
+                  {getRoleLabel(currentRole)}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={handleLogout}
+              data-testid="button-logout"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Log Out
+            </Button>
+          </>
+        ) : (
+          <div className="flex justify-center">
+            <Avatar>
+              {user?.profileImageUrl && (
+                <AvatarImage src={user.profileImageUrl} alt={user.fullName || user.email || 'User'} />
+              )}
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {getInitials(user)}
+              </AvatarFallback>
+            </Avatar>
           </div>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full"
-          onClick={handleLogout}
-          data-testid="button-logout"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Log Out
-        </Button>
+        )}
       </SidebarFooter>
     </Sidebar>
   );
