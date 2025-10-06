@@ -58,9 +58,7 @@ export default function TaskManagement() {
   }, []);
 
   useEffect(() => {
-    if (!isModalOpen) {
-      setLocalTaskChanges({});
-    }
+    setLocalTaskChanges({});
   }, [isModalOpen, selectedTask?.id]);
 
   const { data: tasksData } = useQuery<{ tasks: TaskWithDetails[], totalCount: number }>({
@@ -173,6 +171,14 @@ export default function TaskManagement() {
 
   const handleSaveTask = () => {
     if (!taskDetail) return;
+    
+    if (Object.keys(localTaskChanges).length === 0) {
+      toast({
+        title: "No changes",
+        description: "No changes to save",
+      });
+      return;
+    }
     
     updateTaskMutation.mutate(localTaskChanges);
   };
