@@ -423,6 +423,11 @@ export class DbStorage implements IStorage {
         claimNumber: claims.invoiceNumber,
         client: claims.payorName,
         assignedToName: users.fullName,
+        invoiceDate: claims.invoiceDate,
+        invoiceAge: claims.invoiceAge,
+        invoiceAgeBucket: claims.invoiceAgeBucket,
+        dateOfService: claims.dateOfService,
+        dosAgeBucket: claims.dosAgeBucket,
       })
       .from(tasks)
       .innerJoin(claims, eq(tasks.claimId, claims.id))
@@ -473,6 +478,11 @@ export class DbStorage implements IStorage {
         claimNumber: claims.invoiceNumber,
         client: claims.payorName,
         assignedToName: users.fullName,
+        invoiceDate: claims.invoiceDate,
+        invoiceAge: claims.invoiceAge,
+        invoiceAgeBucket: claims.invoiceAgeBucket,
+        dateOfService: claims.dateOfService,
+        dosAgeBucket: claims.dosAgeBucket,
       })
       .from(tasks)
       .innerJoin(claims, eq(tasks.claimId, claims.id))
