@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Play, Pause, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -76,6 +76,7 @@ export default function TaskManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [localTaskChanges, setLocalTaskChanges] = useState<Partial<TaskWithDetails>>({});
+  const [timerStartedInModal, setTimerStartedInModal] = useState(false);
   const { toast } = useToast();
 
   const pageSize = 50;
@@ -90,6 +91,16 @@ export default function TaskManagement() {
   useEffect(() => {
     setLocalTaskChanges({});
   }, [isModalOpen, selectedTask?.id]);
+
+  useEffect(() => {
+    if (isModalOpen && selectedTask?.id) {
+      startTimerMutation.mutate(selectedTask.id);
+      setTimerStartedInModal(true);
+    } else if (!isModalOpen && timerStartedInModal && selectedTask?.id) {
+      stopTimerMutation.mutate(selectedTask.id);
+      setTimerStartedInModal(false);
+    }
+  }, [isModalOpen]);
 
   const { data: tasksData } = useQuery<{ tasks: TaskWithDetails[], totalCount: number }>({
     queryKey: ['/api/tasks', searchTerm, selectedClient, selectedStatuses, pageSize, currentPage * pageSize],
@@ -119,7 +130,7 @@ export default function TaskManagement() {
   const { data: taskDetail, refetch: refetchTaskDetail } = useQuery<TaskWithDetails>({
     queryKey: ['/api/tasks', selectedTask?.id],
     enabled: !!selectedTask?.id,
-    refetchInterval: isModalOpen ? false : 1000,
+    refetchInterval: 1000,
   });
 
   const updateTaskMutation = useMutation({
@@ -515,26 +526,9 @@ export default function TaskManagement() {
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium">Time Tracking</label>
                   <div className="flex items-center gap-2">
-                    <span className="text-lg font-semibold">{getActiveTime(currentTaskData)}</span>
-                    {currentTaskData.activeTimerStartedAt ? (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => stopTimerMutation.mutate(currentTaskData.id)}
-                        data-testid="button-stop-timer"
-                      >
-                        <Pause className="h-4 w-4 mr-1" />
-                        Stop
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={() => startTimerMutation.mutate(currentTaskData.id)}
-                        data-testid="button-start-timer"
-                      >
-                        <Play className="h-4 w-4 mr-1" />
-                        Start
-                      </Button>
+                    <span className="text-lg font-semibold" data-testid="text-time-tracking">{getActiveTime(currentTaskData)}</span>
+                    {currentTaskData.activeTimerStartedAt && (
+                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" data-testid="indicator-timer-active" />
                     )}
                   </div>
                 </div>
