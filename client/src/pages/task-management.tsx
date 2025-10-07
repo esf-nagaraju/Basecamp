@@ -29,6 +29,11 @@ interface TaskWithDetails {
   rootCauseDetail: string | null;
   resolutionAction: string | null;
   notes: string | null;
+  invoiceDate: string | null;
+  invoiceAge: number | null;
+  invoiceAgeBucket: string | null;
+  dateOfService: string | null;
+  dosAgeBucket: string | null;
 }
 
 interface TaskMetadata {
