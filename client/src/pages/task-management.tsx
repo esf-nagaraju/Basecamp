@@ -157,6 +157,21 @@ export default function TaskManagement() {
     },
   });
 
+  const updateClaimMutation = useMutation({
+    mutationFn: async (updates: any) => {
+      if (!currentTaskData?.claimId) throw new Error('No claim ID');
+      return apiRequest('PATCH', `/api/claims/${currentTaskData.claimId}`, updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      refetchTaskDetail();
+      toast({
+        title: "Success",
+        description: "Claim updated successfully",
+      });
+    },
+  });
+
   const tasks = tasksData?.tasks || [];
   const totalCount = tasksData?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -199,7 +214,7 @@ export default function TaskManagement() {
     }
   };
 
-  const handleSaveTask = () => {
+  const handleSaveTask = async () => {
     if (!taskDetail) return;
     
     if (Object.keys(localTaskChanges).length === 0) {
@@ -210,7 +225,34 @@ export default function TaskManagement() {
       return;
     }
     
-    updateTaskMutation.mutate(localTaskChanges);
+    const taskFields = ['priority', 'status', 'progressPercent', 'resolutionCategory', 
+                        'rootCauseCategory', 'rootCauseDetail', 'resolutionAction', 'notes'];
+    const claimFields = ['actionCategory', 'billingProvider', 'dateClaimSent', 'errorFile', 
+                         'financialClass', 'fixedDenial', 'fixedRemarkCode', 'followUpDays', 
+                         'grossAmount', 'location', 'maxCreateDate', 'nrcContract', 'payment', 
+                         'payorId', 'payorType', 'pfx', 'renderingProvider', 'servicingLocation', 
+                         'sfx', 'writeOffs', 'allowedAmount'];
+    
+    const taskUpdates: any = {};
+    const claimUpdates: any = {};
+    
+    for (const [key, value] of Object.entries(localTaskChanges)) {
+      if (taskFields.includes(key)) {
+        taskUpdates[key] = value;
+      } else if (claimFields.includes(key)) {
+        claimUpdates[key] = value;
+      }
+    }
+    
+    if (Object.keys(taskUpdates).length > 0) {
+      updateTaskMutation.mutate(taskUpdates);
+    }
+    
+    if (Object.keys(claimUpdates).length > 0) {
+      updateClaimMutation.mutate(claimUpdates);
+    }
+    
+    setLocalTaskChanges({});
   };
 
   const currentTaskData = taskDetail ? { ...taskDetail, ...localTaskChanges } : null;
@@ -595,6 +637,320 @@ export default function TaskManagement() {
                       ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="pt-4 border-t">
+                <h3 className="text-sm font-semibold mb-4">Claim Details</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Accurio Action/Status</label>
+                    <Input
+                      value={currentTaskData.accurioActionStatus || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, accurioActionStatus: e.target.value }))}
+                      placeholder="Enter status"
+                      className="mt-1"
+                      data-testid="input-accurio-action-status"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Action Category</label>
+                    <Input
+                      value={currentTaskData.actionCategory || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, actionCategory: e.target.value }))}
+                      placeholder="Enter action category"
+                      className="mt-1"
+                      data-testid="input-action-category"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Date of Service</label>
+                    <Input
+                      type="date"
+                      value={currentTaskData.dateOfService || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, dateOfService: e.target.value }))}
+                      className="mt-1"
+                      data-testid="input-date-of-service"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Date Claim Sent</label>
+                    <Input
+                      type="date"
+                      value={currentTaskData.dateClaimSent || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, dateClaimSent: e.target.value }))}
+                      className="mt-1"
+                      data-testid="input-date-claim-sent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Invoice Age Bucket</label>
+                    <Input
+                      value={currentTaskData.invoiceAgeBucket || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-invoice-age-bucket"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Follow Up Days</label>
+                    <Input
+                      type="number"
+                      value={currentTaskData.followUpDays?.toString() || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, followUpDays: parseInt(e.target.value) || 0 }))}
+                      placeholder="Enter follow up days"
+                      className="mt-1"
+                      data-testid="input-follow-up-days"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <h3 className="text-sm font-semibold mb-4">Provider Information</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Billing Provider</label>
+                    <Input
+                      value={currentTaskData.billingProvider || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, billingProvider: e.target.value }))}
+                      placeholder="Enter billing provider"
+                      className="mt-1"
+                      data-testid="input-billing-provider"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Rendering Provider</label>
+                    <Input
+                      value={currentTaskData.renderingProvider || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, renderingProvider: e.target.value }))}
+                      placeholder="Enter rendering provider"
+                      className="mt-1"
+                      data-testid="input-rendering-provider"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Location</label>
+                    <Input
+                      value={currentTaskData.location || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, location: e.target.value }))}
+                      placeholder="Enter location"
+                      className="mt-1"
+                      data-testid="input-location"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Servicing Location</label>
+                    <Input
+                      value={currentTaskData.servicingLocation || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, servicingLocation: e.target.value }))}
+                      placeholder="Enter servicing location"
+                      className="mt-1"
+                      data-testid="input-servicing-location"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <h3 className="text-sm font-semibold mb-4">Payor Information</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Payor ID</label>
+                    <Input
+                      value={currentTaskData.payorId || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, payorId: e.target.value }))}
+                      placeholder="Enter payor ID"
+                      className="mt-1"
+                      data-testid="input-payor-id"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Payor Type</label>
+                    <Input
+                      value={currentTaskData.payorType || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, payorType: e.target.value }))}
+                      placeholder="Enter payor type"
+                      className="mt-1"
+                      data-testid="input-payor-type"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <h3 className="text-sm font-semibold mb-4">Financial Details</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Allowed Amount</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={currentTaskData.allowedAmount || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, allowedAmount: e.target.value }))}
+                      placeholder="0.00"
+                      className="mt-1"
+                      data-testid="input-allowed-amount"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Gross Amount</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={currentTaskData.grossAmount || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, grossAmount: e.target.value }))}
+                      placeholder="0.00"
+                      className="mt-1"
+                      data-testid="input-gross-amount"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Payment</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={currentTaskData.payment || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, payment: e.target.value }))}
+                      placeholder="0.00"
+                      className="mt-1"
+                      data-testid="input-payment"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Total Balance</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={currentTaskData.totalBalance || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-total-balance"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Write-Offs</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={currentTaskData.writeOffs || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, writeOffs: e.target.value }))}
+                      placeholder="0.00"
+                      className="mt-1"
+                      data-testid="input-write-offs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <h3 className="text-sm font-semibold mb-4">Additional Information</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Financial Class</label>
+                    <Input
+                      value={currentTaskData.financialClass || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, financialClass: e.target.value }))}
+                      placeholder="Enter financial class"
+                      className="mt-1"
+                      data-testid="input-financial-class"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">NRC Contract</label>
+                    <Input
+                      value={currentTaskData.nrcContract || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, nrcContract: e.target.value }))}
+                      placeholder="Enter NRC contract"
+                      className="mt-1"
+                      data-testid="input-nrc-contract"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Pfx</label>
+                    <Input
+                      value={currentTaskData.pfx || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, pfx: e.target.value }))}
+                      placeholder="Enter prefix"
+                      className="mt-1"
+                      data-testid="input-pfx"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Sfx</label>
+                    <Input
+                      value={currentTaskData.sfx || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, sfx: e.target.value }))}
+                      placeholder="Enter suffix"
+                      className="mt-1"
+                      data-testid="input-sfx"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Error File</label>
+                    <Input
+                      value={currentTaskData.errorFile || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, errorFile: e.target.value }))}
+                      placeholder="Enter error file"
+                      className="mt-1"
+                      data-testid="input-error-file"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Max Create Date</label>
+                    <Input
+                      type="date"
+                      value={currentTaskData.maxCreateDate || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, maxCreateDate: e.target.value }))}
+                      className="mt-1"
+                      data-testid="input-max-create-date"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Fixed Denial</label>
+                    <Input
+                      value={currentTaskData.fixedDenial || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, fixedDenial: e.target.value }))}
+                      placeholder="Enter fixed denial"
+                      className="mt-1"
+                      data-testid="input-fixed-denial"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Fixed Remark Code</label>
+                    <Input
+                      value={currentTaskData.fixedRemarkCode || ''}
+                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, fixedRemarkCode: e.target.value }))}
+                      placeholder="Enter fixed remark code"
+                      className="mt-1"
+                      data-testid="input-fixed-remark-code"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>
