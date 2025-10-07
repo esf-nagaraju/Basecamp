@@ -258,6 +258,11 @@ export default function TaskManagement() {
                   <TableHead>Client</TableHead>
                   <TableHead>Assigned To</TableHead>
                   <TableHead>Time Spent</TableHead>
+                  <TableHead>Invoice Date</TableHead>
+                  <TableHead>Invoice Age</TableHead>
+                  <TableHead>Invoice Age Bucket</TableHead>
+                  <TableHead>Date of Service</TableHead>
+                  <TableHead>DOS Age Bucket</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -296,6 +301,21 @@ export default function TaskManagement() {
                           <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell data-testid={`text-invoice-date-${task.id}`}>
+                      {task.invoiceDate || '-'}
+                    </TableCell>
+                    <TableCell data-testid={`text-invoice-age-${task.id}`}>
+                      {task.invoiceAge !== null ? task.invoiceAge : '-'}
+                    </TableCell>
+                    <TableCell data-testid={`text-invoice-age-bucket-${task.id}`}>
+                      {task.invoiceAgeBucket || '-'}
+                    </TableCell>
+                    <TableCell data-testid={`text-date-of-service-${task.id}`}>
+                      {task.dateOfService || '-'}
+                    </TableCell>
+                    <TableCell data-testid={`text-dos-age-bucket-${task.id}`}>
+                      {task.dosAgeBucket || '-'}
                     </TableCell>
                     <TableCell>
                       <Button
