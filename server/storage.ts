@@ -91,6 +91,11 @@ export interface TaskWithDetails extends Task {
   claimNumber: string;
   client: string;
   assignedToName: string | null;
+  invoiceDate: string | null;
+  invoiceAge: number | null;
+  invoiceAgeBucket: string | null;
+  dateOfService: string | null;
+  dosAgeBucket: string | null;
 }
 
 export interface ProductivityMetrics {
