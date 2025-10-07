@@ -96,6 +96,29 @@ export interface TaskWithDetails extends Task {
   invoiceAgeBucket: string | null;
   dateOfService: string | null;
   dosAgeBucket: string | null;
+  accurioActionStatus: string | null;
+  actionCategory: string | null;
+  allowedAmount: string | null;
+  billingProvider: string | null;
+  dateClaimSent: string | null;
+  errorFile: string | null;
+  financialClass: string | null;
+  fixedDenial: string | null;
+  fixedRemarkCode: string | null;
+  followUpDays: number | null;
+  grossAmount: string | null;
+  location: string | null;
+  maxCreateDate: string | null;
+  nrcContract: string | null;
+  payment: string | null;
+  payorId: string | null;
+  payorType: string | null;
+  pfx: string | null;
+  renderingProvider: string | null;
+  servicingLocation: string | null;
+  sfx: string | null;
+  totalBalance: string | null;
+  writeOffs: string | null;
 }
 
 export interface ProductivityMetrics {
