@@ -329,6 +329,10 @@ export default function TaskManagement() {
                   <TableHead>Invoice Age Bucket</TableHead>
                   <TableHead>Date of Service</TableHead>
                   <TableHead>DOS Age Bucket</TableHead>
+                  <TableHead>Resolution Category</TableHead>
+                  <TableHead>Root Cause Category</TableHead>
+                  <TableHead>Root Cause Detail</TableHead>
+                  <TableHead>Resolution/Action Taken</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -382,6 +386,18 @@ export default function TaskManagement() {
                     </TableCell>
                     <TableCell data-testid={`text-dos-age-bucket-${task.id}`}>
                       {task.dosAgeBucket || '-'}
+                    </TableCell>
+                    <TableCell data-testid={`text-resolution-category-${task.id}`}>
+                      {task.resolutionCategory || '-'}
+                    </TableCell>
+                    <TableCell data-testid={`text-root-cause-category-${task.id}`}>
+                      {task.rootCauseCategory || '-'}
+                    </TableCell>
+                    <TableCell data-testid={`text-root-cause-detail-${task.id}`}>
+                      {task.rootCauseDetail || '-'}
+                    </TableCell>
+                    <TableCell data-testid={`text-resolution-action-${task.id}`}>
+                      {task.resolutionAction || '-'}
                     </TableCell>
                     <TableCell>
                       <Button
