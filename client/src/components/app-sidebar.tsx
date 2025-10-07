@@ -33,7 +33,7 @@ const menuItems = [
     title: "Dashboard",
     url: "/",
     icon: LayoutDashboard,
-    roles: ["agent", "lead", "manager"],
+    roles: ["agent", "lead", "manager", "admin"],
   },
   {
     title: "My Worklist",
@@ -45,25 +45,25 @@ const menuItems = [
     title: "Team Management",
     url: "/team",
     icon: Users,
-    roles: ["lead", "manager"],
+    roles: ["lead", "manager", "admin"],
   },
   {
     title: "Analytics",
     url: "/analytics",
     icon: BarChart3,
-    roles: ["lead", "manager"],
+    roles: ["lead", "manager", "admin"],
   },
   {
     title: "Claims",
     url: "/claims",
     icon: FileText,
-    roles: ["agent", "lead", "manager"],
+    roles: ["agent", "lead", "manager", "admin"],
   },
   {
     title: "Denials",
     url: "/denials",
     icon: AlertCircle,
-    roles: ["agent", "lead", "manager"],
+    roles: ["agent", "lead", "manager", "admin"],
   },
   {
     title: "Task Management",
@@ -75,7 +75,13 @@ const menuItems = [
     title: "Productivity",
     url: "/productivity",
     icon: TrendingUp,
-    roles: ["lead", "manager"],
+    roles: ["lead", "manager", "admin"],
+  },
+  {
+    title: "Settings",
+    url: "/settings",
+    icon: Settings,
+    roles: ["agent", "lead", "manager", "admin"],
   },
 ];
 

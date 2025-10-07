@@ -149,7 +149,7 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
+  async upsertUser(userData: UpsertUser & { role?: string }): Promise<User> {
     let defaultTenant = await db
       .select()
       .from(tenants)
@@ -167,6 +167,7 @@ export class DbStorage implements IStorage {
     }
     
     const tenantId = defaultTenant[0].id;
+    const role = userData.role || 'agent';
     
     const [user] = await db
       .insert(users)
@@ -179,7 +180,7 @@ export class DbStorage implements IStorage {
         profileImageUrl: userData.profileImageUrl,
         fullName: [userData.firstName, userData.lastName].filter(Boolean).join(' ') || userData.email || 'User',
         tenantId: tenantId,
-        role: 'agent',
+        role: role,
       })
       .onConflictDoUpdate({
         target: users.id,
@@ -189,6 +190,7 @@ export class DbStorage implements IStorage {
           lastName: userData.lastName,
           profileImageUrl: userData.profileImageUrl,
           fullName: [userData.firstName, userData.lastName].filter(Boolean).join(' ') || userData.email || 'User',
+          role: role,
           updatedAt: new Date(),
         },
       })
