@@ -57,14 +57,14 @@ function AppLayout() {
       <div className="flex h-screen w-full">
         <AppSidebar />
         <div className="flex flex-col flex-1">
-          <header className="flex items-center justify-between p-4 border-b h-16">
+          <header className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-background to-muted/20 backdrop-blur-sm h-16 sticky top-0 z-50">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <TenantSwitcher />
               <ThemeToggle />
             </div>
           </header>
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-auto p-6 bg-background">
             <Router />
           </main>
         </div>
