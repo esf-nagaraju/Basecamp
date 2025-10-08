@@ -61,6 +61,12 @@ The application follows Microsoft Fluent Design guidelines optimized for data-he
   - Transactional safety: Claims, tasks, and activity logs created atomically
   - Tenant consistency validation enforced before import
   - Automatic rollback on any failure prevents orphaned data
+- Bulk task assignment for high-volume operations (50,000+ daily tasks)
+  - Checkbox-based selection with Set data structure for O(1) lookups
+  - Bulk action toolbar with assignment dialog
+  - Single database query for mass updates with minimal payload (ID-only returning)
+  - Tenant-scoped filtering prevents cross-tenant assignment
+  - Activity log tracking for audit trail
 - Computed metrics aggregation (productivity, financial)
 
 **Background Processing:**
