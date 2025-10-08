@@ -234,7 +234,6 @@ export class DbStorage implements IStorage {
           lastName: userData.lastName,
           profileImageUrl: userData.profileImageUrl,
           fullName: [userData.firstName, userData.lastName].filter(Boolean).join(' ') || userData.email || 'User',
-          role: role,
           updatedAt: new Date(),
         },
       })
