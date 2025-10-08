@@ -69,10 +69,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const { password, ...safeUser } = user;
-      res.json(safeUser);
+      
+      // Include active tenant info
+      const activeTenantId = req.session.activeTenantId || user.tenantId;
+      const activeTenant = await storage.getTenant(activeTenantId);
+      
+      res.json({
+        ...safeUser,
+        activeTenantId,
+        activeTenantName: activeTenant?.name,
+      });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  app.get('/api/user/tenants', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get user's accessible tenants (primary tenant + additional tenants)
+      const additionalTenants = await storage.getUserTenants(userId);
+      const primaryTenant = await storage.getTenant(user.tenantId);
+      
+      // Combine and deduplicate
+      const tenantMap = new Map();
+      if (primaryTenant) {
+        tenantMap.set(primaryTenant.id, primaryTenant);
+      }
+      additionalTenants.forEach(t => tenantMap.set(t.id, t));
+      
+      const tenants = Array.from(tenantMap.values()).sort((a, b) => 
+        a.name.localeCompare(b.name)
+      );
+      
+      res.json(tenants);
+    } catch (error) {
+      console.error("Error fetching user tenants:", error);
+      res.status(500).json({ message: "Failed to fetch tenants" });
+    }
+  });
+
+  app.post('/api/user/switch-tenant', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { tenantId } = req.body;
+      
+      if (!tenantId) {
+        return res.status(400).json({ message: "tenantId is required" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Verify user has access to this tenant
+      const userTenants = await storage.getUserTenants(userId);
+      const hasAccess = userTenants.some(t => t.id === tenantId) || user.tenantId === tenantId;
+      
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied to this tenant" });
+      }
+      
+      // Update session with new active tenant
+      req.session.activeTenantId = tenantId;
+      
+      const tenant = await storage.getTenant(tenantId);
+      res.json({ 
+        success: true, 
+        activeTenantId: tenantId,
+        activeTenantName: tenant?.name,
+      });
+    } catch (error) {
+      console.error("Error switching tenant:", error);
+      res.status(500).json({ message: "Failed to switch tenant" });
     }
   });
 
