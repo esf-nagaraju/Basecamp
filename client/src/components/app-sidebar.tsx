@@ -67,7 +67,7 @@ const menuItems = [
     roles: [USER_ROLES.RCM_SPECIALIST, USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
   },
   {
-    title: "Task Management",
+    title: "Accounts Receivable",
     url: "/task-management",
     icon: Upload,
     roles: [USER_ROLES.RCM_SPECIALIST, USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
