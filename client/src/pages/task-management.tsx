@@ -446,8 +446,7 @@ export default function TaskManagement() {
                   <TableHead>Claim Number</TableHead>
                   <TableHead>Priority</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Progress</TableHead>
-                  <TableHead>Client</TableHead>
+                  <TableHead>Payor</TableHead>
                   <TableHead>Assigned To</TableHead>
                   <TableHead>Time Spent</TableHead>
                   <TableHead>Invoice Date</TableHead>
@@ -472,12 +471,6 @@ export default function TaskManagement() {
                       <Badge variant={getStatusBadgeVariant(task.status)} data-testid={`badge-status-${task.id}`}>
                         {task.status}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Progress value={task.progressPercent || 0} className="w-24" />
-                        <span className="text-sm text-muted-foreground">{task.progressPercent || 0}%</span>
-                      </div>
                     </TableCell>
                     <TableCell>{task.client}</TableCell>
                     <TableCell>
