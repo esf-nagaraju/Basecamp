@@ -56,7 +56,11 @@ The application follows Microsoft Fluent Design guidelines optimized for data-he
 **Data Access Pattern:**
 - Storage abstraction layer (`server/storage.ts`) implementing `IStorage` interface
 - Centralized database operations with tenant-scoped queries
-- Bulk operations support for claims import
+- Bulk operations support for claims and tasks (batched at 1000 rows per batch)
+- CSV file upload for bulk claim ingestion (supports 60,000+ records)
+  - Transactional safety: Claims, tasks, and activity logs created atomically
+  - Tenant consistency validation enforced before import
+  - Automatic rollback on any failure prevents orphaned data
 - Computed metrics aggregation (productivity, financial)
 
 **Background Processing:**

@@ -39,12 +39,14 @@ export interface IStorage {
   createClaim(claim: InsertClaim): Promise<Claim>;
   updateClaim(id: string, tenantId: string, updates: Partial<InsertClaim>): Promise<Claim | undefined>;
   bulkCreateClaims(claims: InsertClaim[]): Promise<Claim[]>;
+  bulkImportClaimsWithTasks(claims: InsertClaim[], tenantId: string, userId: string, fileName: string): Promise<{ claimsCount: number, tasksCount: number }>;
   
   getTask(id: string, tenantId: string): Promise<Task | undefined>;
   getTasks(tenantId: string, filters?: TaskFilters): Promise<Task[]>;
   getTasksWithDetails(tenantId: string, filters?: TaskFilters): Promise<{ tasks: TaskWithDetails[], totalCount: number }>;
   getTaskWithDetails(id: string, tenantId: string): Promise<TaskWithDetails | undefined>;
   createTask(task: InsertTask): Promise<Task>;
+  bulkCreateTasks(tasks: InsertTask[]): Promise<Task[]>;
   updateTask(id: string, tenantId: string, updates: Partial<InsertTask>): Promise<Task | undefined>;
   startTaskTimer(id: string, tenantId: string): Promise<Task | undefined>;
   stopTaskTimer(id: string, tenantId: string): Promise<Task | undefined>;
@@ -305,8 +307,79 @@ export class DbStorage implements IStorage {
       throw new Error("All claims must belong to the same tenant");
     }
     
-    const result = await db.insert(claims).values(claimsList).returning();
-    return result;
+    const batchSize = 1000;
+    const allResults: Claim[] = [];
+    
+    for (let i = 0; i < claimsList.length; i += batchSize) {
+      const batch = claimsList.slice(i, i + batchSize);
+      const result = await db.insert(claims).values(batch).returning();
+      allResults.push(...result);
+    }
+    
+    return allResults;
+  }
+
+  async bulkImportClaimsWithTasks(
+    claimsList: InsertClaim[],
+    tenantId: string,
+    userId: string,
+    fileName: string
+  ): Promise<{ claimsCount: number, tasksCount: number }> {
+    if (claimsList.length === 0) {
+      return { claimsCount: 0, tasksCount: 0 };
+    }
+    
+    const tenantIds = new Set(claimsList.map(c => c.tenantId));
+    if (tenantIds.size > 1) {
+      throw new Error("All claims must belong to the same tenant");
+    }
+    
+    if (!tenantIds.has(tenantId)) {
+      throw new Error("Claims tenant ID does not match provided tenant ID");
+    }
+    
+    return await db.transaction(async (tx) => {
+      const batchSize = 1000;
+      const allClaims: Claim[] = [];
+      
+      for (let i = 0; i < claimsList.length; i += batchSize) {
+        const batch = claimsList.slice(i, i + batchSize);
+        const result = await tx.insert(claims).values(batch).returning();
+        allClaims.push(...result);
+      }
+      
+      const taskData = allClaims.map(claim => ({
+        tenantId,
+        claimId: claim.id!,
+        title: `Process claim ${claim.invoiceNumber}`,
+        priority: 'medium' as const,
+        status: 'pending' as const,
+        progressPercent: 0,
+      }));
+      
+      const allTasks: Task[] = [];
+      for (let i = 0; i < taskData.length; i += batchSize) {
+        const batch = taskData.slice(i, i + batchSize);
+        const result = await tx.insert(tasks).values(batch).returning();
+        allTasks.push(...result);
+      }
+      
+      await tx.insert(activityLogs).values({
+        tenantId,
+        userId,
+        action: "csv_import",
+        details: {
+          fileName,
+          claimsImported: allClaims.length,
+          tasksCreated: allTasks.length
+        },
+      });
+      
+      return {
+        claimsCount: allClaims.length,
+        tasksCount: allTasks.length
+      };
+    });
   }
 
   async getTask(id: string, tenantId: string): Promise<Task | undefined> {
@@ -363,6 +436,26 @@ export class DbStorage implements IStorage {
     
     const result = await db.insert(tasks).values(task).returning();
     return result[0];
+  }
+
+  async bulkCreateTasks(tasksList: InsertTask[]): Promise<Task[]> {
+    if (tasksList.length === 0) return [];
+    
+    const tenantIds = new Set(tasksList.map(t => t.tenantId));
+    if (tenantIds.size > 1) {
+      throw new Error("All tasks must belong to the same tenant");
+    }
+    
+    const batchSize = 1000;
+    const allResults: Task[] = [];
+    
+    for (let i = 0; i < tasksList.length; i += batchSize) {
+      const batch = tasksList.slice(i, i + batchSize);
+      const result = await db.insert(tasks).values(batch).returning();
+      allResults.push(...result);
+    }
+    
+    return allResults;
   }
 
   async updateTask(

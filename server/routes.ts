@@ -19,6 +19,13 @@ declare global {
   }
 }
 
+const fileUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB limit
+  },
+});
+
 async function getUserContext(req: any): Promise<{ userId: string; tenantId: string }> {
   const userId = req.user.claims.sub;
   const user = await storage.getUser(userId);
@@ -197,6 +204,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error bulk creating claims:", error);
       res.status(500).json({ message: "Failed to bulk create claims" });
+    }
+  });
+
+  app.post('/api/claims/upload', isAuthenticated, fileUpload.single('file'), async (req: any, res) => {
+    try {
+      const { tenantId, userId } = await getUserContext(req);
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const fileContent = req.file.buffer.toString('utf8');
+      
+      const parseResult = Papa.parse(fileContent, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header: string) => header.trim(),
+      });
+
+      if (parseResult.errors.length > 0) {
+        return res.status(400).json({ 
+          message: "CSV parsing error", 
+          errors: parseResult.errors 
+        });
+      }
+
+      const csvData = parseResult.data as any[];
+      
+      if (csvData.length === 0) {
+        return res.status(400).json({ message: "CSV file is empty" });
+      }
+
+      const validatedClaims: any[] = [];
+      const errors: any[] = [];
+      
+      for (let i = 0; i < csvData.length; i++) {
+        const row = csvData[i];
+        try {
+          const claimData = {
+            tenantId,
+            invoiceNumber: row['Claim Number'] || row['Invoice Number'] || row['invoiceNumber'],
+            customerName: row['Client'] || row['Customer Name'] || row['customerName'] || row['client'],
+            invoiceDate: row['Invoice Date'] || row['invoiceDate'],
+            balanceDue: row['Balance'] || row['Balance Due'] || row['balanceDue'] || '0',
+            payorName: row['Payor Name'] || row['payorName'] || '',
+            invoiceAge: row['Invoice Age'] ? parseInt(row['Invoice Age']) : null,
+            invoiceAgeBucket: row['Invoice Age Bucket'] || row['invoiceAgeBucket'] || null,
+            dateOfService: row['Date of Service'] || row['dateOfService'] || null,
+            dosAgeBucket: row['DOS Age Bucket'] || row['dosAgeBucket'] || null,
+            payorCode: row['Payor Code'] || row['payorCode'] || null,
+            payorType: row['Payor Type'] || row['payorType'] || null,
+            denialCodes: row['Denial Codes'] || row['denialCodes'] || null,
+            listPrice: row['List Price'] || row['listPrice'] || null,
+            allowedAmount: row['Allowed Amount'] || row['allowedAmount'] || null,
+          };
+
+          const validated = insertClaimSchema.parse(claimData);
+          validatedClaims.push(validated);
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            errors.push({ 
+              row: i + 2, 
+              data: row, 
+              errors: error.errors.map(e => `${e.path.join('.')}: ${e.message}`) 
+            });
+          }
+        }
+      }
+
+      if (errors.length > 0) {
+        const errorSample = errors.slice(0, 10);
+        return res.status(400).json({ 
+          message: `Validation failed for ${errors.length} rows`, 
+          errorSample,
+          totalErrors: errors.length
+        });
+      }
+
+      const result = await storage.bulkImportClaimsWithTasks(validatedClaims, tenantId, userId, req.file.originalname);
+
+      res.status(201).json({ 
+        imported: result.claimsCount,
+        tasksCreated: result.tasksCount,
+        message: `Successfully imported ${result.claimsCount} claims and created ${result.tasksCount} tasks`
+      });
+    } catch (error) {
+      console.error("Error uploading CSV:", error);
+      res.status(500).json({ message: "Failed to process CSV file" });
     }
   });
 

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Search, ChevronLeft, ChevronRight, Upload, FileSpreadsheet, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -77,6 +77,9 @@ export default function TaskManagement() {
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [localTaskChanges, setLocalTaskChanges] = useState<Partial<TaskWithDetails>>({});
   const [timerStartedInModal, setTimerStartedInModal] = useState(false);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
 
   const pageSize = 50;
@@ -183,6 +186,111 @@ export default function TaskManagement() {
     },
   });
 
+  const uploadFileMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/claims/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/claims'] });
+      setIsUploadDialogOpen(false);
+      setSelectedFile(null);
+      toast({
+        title: "Success",
+        description: `Successfully imported ${data.imported} claims and created ${data.tasksCreated} tasks`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Upload Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const validateFile = (file: File): string | null => {
+    const validTypes = ['text/csv', 'text/plain'];
+    const validExtensions = ['.csv'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    
+    if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
+      return 'Invalid file type. Please upload a CSV file only.';
+    }
+    
+    if (file.size > 100 * 1024 * 1024) { // 100MB limit
+      return 'File size too large. Maximum size is 100MB.';
+    }
+    
+    return null;
+  };
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      const error = validateFile(file);
+      if (error) {
+        toast({
+          title: "Invalid File",
+          description: error,
+          variant: "destructive",
+        });
+        return;
+      }
+      setSelectedFile(file);
+    }
+  }, [toast]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      const error = validateFile(file);
+      if (error) {
+        toast({
+          title: "Invalid File",
+          description: error,
+          variant: "destructive",
+        });
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  const handleUpload = () => {
+    if (selectedFile) {
+      uploadFileMutation.mutate(selectedFile);
+    }
+  };
+
   const tasks = tasksData?.tasks || [];
   const totalCount = tasksData?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -275,6 +383,13 @@ export default function TaskManagement() {
           <h1 className="text-3xl font-bold">All Tasks</h1>
           <p className="text-muted-foreground">View and assign all claim processing tasks</p>
         </div>
+        <Button 
+          onClick={() => setIsUploadDialogOpen(true)}
+          data-testid="button-upload-claims"
+        >
+          <Upload className="mr-2 h-4 w-4" />
+          Upload Claims
+        </Button>
       </div>
 
       <Card>
@@ -978,6 +1093,104 @@ export default function TaskManagement() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Upload Claims Data</DialogTitle>
+            <DialogDescription>
+              Upload a CSV file containing claim line details to create new tasks
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
+              }`}
+              data-testid="dropzone-upload"
+            >
+              {selectedFile ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <FileSpreadsheet className="h-8 w-8 text-primary" />
+                    <div className="text-left">
+                      <p className="font-medium">{selectedFile.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSelectedFile(null)}
+                    data-testid="button-remove-file"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                  <div>
+                    <p className="text-lg font-medium">Drop your file here or click to browse</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Supports CSV files only (max 100MB)
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    id="file-upload"
+                    data-testid="input-file-upload"
+                  />
+                  <label htmlFor="file-upload">
+                    <Button variant="outline" asChild data-testid="button-browse-file">
+                      <span>Browse Files</span>
+                    </Button>
+                  </label>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <p className="text-sm font-medium">CSV File Requirements:</p>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Must include: Invoice Number (or "Claim Number"), Customer Name (or "Client"), Invoice Date, Balance (or "Balance Due"), Payor Name</li>
+                <li>Optional: Date of Service, Invoice Age, Payor Code, Denial Codes, Invoice Age Bucket, DOS Age Bucket, etc.</li>
+                <li>First row must contain column headers</li>
+                <li>File must be in CSV format (not Excel)</li>
+              </ul>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsUploadDialogOpen(false);
+                  setSelectedFile(null);
+                }}
+                data-testid="button-cancel-upload"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpload}
+                disabled={!selectedFile || uploadFileMutation.isPending}
+                data-testid="button-confirm-upload"
+              >
+                {uploadFileMutation.isPending ? 'Uploading...' : 'Upload & Import'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
