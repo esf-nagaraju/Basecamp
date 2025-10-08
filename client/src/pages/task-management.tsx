@@ -14,6 +14,13 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 interface TaskWithDetails {
   id: string;
   claimId: string;
@@ -22,6 +29,7 @@ interface TaskWithDetails {
   status: string;
   progressPercent: number;
   client: string;
+  assignedTo: string | null;
   assignedToName: string | null;
   totalTimeSeconds: number;
   activeTimerStartedAt: string | null;
@@ -128,6 +136,10 @@ export default function TaskManagement() {
 
   const { data: metadata } = useQuery<TaskMetadata>({
     queryKey: ['/api/task-metadata'],
+  });
+
+  const { data: usersData } = useQuery<User[]>({
+    queryKey: ['/api/users'],
   });
 
   const { data: taskDetail, refetch: refetchTaskDetail } = useQuery<TaskWithDetails>({
@@ -345,7 +357,7 @@ export default function TaskManagement() {
     }
     
     const taskFields = ['priority', 'status', 'progressPercent', 'resolutionCategory', 
-                        'rootCauseCategory', 'rootCauseDetail', 'resolutionAction', 'notes'];
+                        'rootCauseCategory', 'rootCauseDetail', 'resolutionAction', 'notes', 'assignedTo'];
     const claimFields = ['actionCategory', 'billingProvider', 'dateClaimSent', 'errorFile', 
                          'financialClass', 'fixedDenial', 'fixedRemarkCode', 'followUpDays', 
                          'grossAmount', 'location', 'maxCreateDate', 'nrcContract', 'payment', 
@@ -573,12 +585,33 @@ export default function TaskManagement() {
                   <div className="text-lg font-semibold">{currentTaskData.claimNumber}</div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Client</label>
+                  <label className="text-sm font-medium">Payor</label>
                   <div className="text-lg">{currentTaskData.client}</div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Assigned To</label>
+                  <Select
+                    value={currentTaskData.assignedTo || ''}
+                    onValueChange={(value) => {
+                      setLocalTaskChanges(prev => ({ ...prev, assignedTo: value || null }));
+                    }}
+                  >
+                    <SelectTrigger className="mt-1" data-testid="select-assigned-to">
+                      <SelectValue placeholder="Unassigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Unassigned</SelectItem>
+                      {(usersData || []).map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.firstName} {user.lastName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div>
                   <label className="text-sm font-medium">Priority</label>
                   <Select
