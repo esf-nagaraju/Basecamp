@@ -50,6 +50,15 @@ export const users = pgTable("users", {
   tenantUsernameUnique: index("users_tenant_username_unique").on(table.tenantId, table.username),
 }));
 
+export const userTenants = pgTable("user_tenants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userTenantIdx: index("user_tenants_user_tenant_idx").on(table.userId, table.tenantId),
+}));
+
 export const claims = pgTable("claims", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
@@ -237,6 +246,11 @@ export const upsertUserSchema = z.object({
   profileImageUrl: z.string().nullable(),
 });
 
+export const insertUserTenantSchema = createInsertSchema(userTenants).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertClaimSchema = createInsertSchema(claims).omit({
   id: true,
   createdAt: true,
@@ -271,6 +285,9 @@ export type Tenant = typeof tenants.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export type InsertUserTenant = z.infer<typeof insertUserTenantSchema>;
+export type UserTenant = typeof userTenants.$inferSelect;
 
 export type InsertClaim = z.infer<typeof insertClaimSchema>;
 export type Claim = typeof claims.$inferSelect;
