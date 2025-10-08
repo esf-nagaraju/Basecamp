@@ -132,15 +132,13 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-lg">
             <ClipboardList className="h-6 w-6" />
           </div>
-          {state === "expanded" && (
-            <div>
-              <h2 className="text-lg font-semibold">ClaimFlowPro</h2>
-              <p className="text-xs text-muted-foreground">AR Management</p>
-            </div>
-          )}
+          <div className="group-data-[collapsible=icon]:hidden">
+            <h2 className="text-lg font-semibold">ClaimFlowPro</h2>
+            <p className="text-xs text-muted-foreground">AR Management</p>
+          </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -157,7 +155,7 @@ export function AppSidebar() {
                   >
                     <Link href={item.url}>
                       <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
+                      <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -167,49 +165,34 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-4 space-y-2">
-        {state === "expanded" ? (
-          <>
-            <div className="flex items-center gap-3">
-              <Avatar>
-                {user?.profileImageUrl && (
-                  <AvatarImage src={user.profileImageUrl} alt={user.fullName || user.email || 'User'} />
-                )}
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {getInitials(user)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-medium truncate" data-testid="text-user-name">
-                  {user?.fullName || user?.email || 'User'}
-                </p>
-                <p className="text-xs text-muted-foreground" data-testid="text-user-role">
-                  {getRoleLabel(currentRole)}
-                </p>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={handleLogout}
-              data-testid="button-logout"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Log Out
-            </Button>
-          </>
-        ) : (
-          <div className="flex justify-center">
-            <Avatar>
-              {user?.profileImageUrl && (
-                <AvatarImage src={user.profileImageUrl} alt={user.fullName || user.email || 'User'} />
-              )}
-              <AvatarFallback className="bg-primary text-primary-foreground">
-                {getInitials(user)}
-              </AvatarFallback>
-            </Avatar>
+        <div className="flex items-center gap-3">
+          <Avatar>
+            {user?.profileImageUrl && (
+              <AvatarImage src={user.profileImageUrl} alt={user.fullName || user.email || 'User'} />
+            )}
+            <AvatarFallback className="bg-gradient-to-br from-purple-600 to-indigo-600 text-white">
+              {getInitials(user)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 overflow-hidden group-data-[collapsible=icon]:hidden">
+            <p className="text-sm font-medium truncate" data-testid="text-user-name">
+              {user?.fullName || user?.email || 'User'}
+            </p>
+            <p className="text-xs text-muted-foreground" data-testid="text-user-role">
+              {getRoleLabel(currentRole)}
+            </p>
           </div>
-        )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full group-data-[collapsible=icon]:hidden"
+          onClick={handleLogout}
+          data-testid="button-logout"
+        >
+          <LogOut className="h-4 w-4 group-data-[collapsible=icon]:hidden mr-2" />
+          <span className="group-data-[collapsible=icon]:hidden">Log Out</span>
+        </Button>
       </SidebarFooter>
     </Sidebar>
   );
