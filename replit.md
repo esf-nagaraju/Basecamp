@@ -4,6 +4,29 @@
 
 ClaimFlowPro is a multi-tenant healthcare accounts receivable (AR) management system designed for medical claims processing. The application enables healthcare organizations to manage claims workflows, track denials, monitor productivity metrics, and automate task prioritization. Built for enterprise use, it supports role-based access control with 5 distinct roles (RCM Specialist, Manager, System Administrator, Client User, Auditor) and provides comprehensive financial intelligence for medical billing operations.
 
+## Recent Changes
+
+### Team Management Feature (October 2025)
+- **User Management UI**: Added comprehensive Team Management page at `/team-management` for System Administrators
+  - Displays all users in current tenant with avatar, name, email, role, date added, and last active timestamp
+  - Users grouped into "Admin users" (System Administrators, Managers) and "Team members" (other roles)
+  - Role editing via dropdown dialog supporting all 5 roles
+  - Real-time UI updates after role changes
+  - Client-side access guard shows "Access Denied" for non-administrators
+
+- **Backend API Endpoints**:
+  - `GET /api/users`: Lists all tenant users (System Administrator only)
+  - `PATCH /api/users/:id/role`: Updates user role with tenant isolation validation
+  - Role-based access control enforced at API level (403 for unauthorized access)
+  - Tenant scoping prevents cross-tenant role manipulation
+
+- **Security Enhancements**:
+  - Multi-layer authorization: Client-side guard + server-side role validation
+  - Tenant isolation: Admins can only view/modify users within their own tenant
+  - Role persistence: Manual role changes now persist across login sessions
+
+- **Navigation**: Added "User Management" menu item in sidebar (UserCog icon) visible only to System Administrators
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
