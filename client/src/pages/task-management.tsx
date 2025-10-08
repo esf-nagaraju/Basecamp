@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, ChevronLeft, ChevronRight, Upload, FileSpreadsheet, X } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Upload, FileSpreadsheet, X, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -88,6 +89,9 @@ export default function TaskManagement() {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [isBulkAssignDialogOpen, setIsBulkAssignDialogOpen] = useState(false);
+  const [bulkAssignUserId, setBulkAssignUserId] = useState<string>("");
   const { toast } = useToast();
 
   const pageSize = 50;
@@ -228,6 +232,29 @@ export default function TaskManagement() {
     onError: (error: Error) => {
       toast({
         title: "Upload Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkAssignMutation = useMutation({
+    mutationFn: async ({ taskIds, assignedTo }: { taskIds: string[], assignedTo: string | null }) => {
+      return apiRequest('PATCH', '/api/tasks/bulk-assign', { taskIds, assignedTo });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      setSelectedTaskIds(new Set());
+      setIsBulkAssignDialogOpen(false);
+      setBulkAssignUserId("");
+      toast({
+        title: "Success",
+        description: `${data.count} task(s) assigned successfully`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Assignment Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -449,12 +476,55 @@ export default function TaskManagement() {
         </CardContent>
       </Card>
 
+      {selectedTaskIds.size > 0 && (
+        <Card className="mb-4">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {selectedTaskIds.size} task(s) selected
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedTaskIds(new Set())}
+                  data-testid="button-clear-selection"
+                >
+                  Clear Selection
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setIsBulkAssignDialogOpen(true)}
+                  data-testid="button-bulk-assign"
+                >
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Bulk Assign
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="flex-1">
         <CardContent className="p-0">
           <div className="overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={tasks.length > 0 && tasks.every(t => selectedTaskIds.has(t.id))}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedTaskIds(new Set(tasks.map(t => t.id)));
+                        } else {
+                          setSelectedTaskIds(new Set());
+                        }
+                      }}
+                      data-testid="checkbox-select-all"
+                    />
+                  </TableHead>
                   <TableHead>Claim Number</TableHead>
                   <TableHead>Priority</TableHead>
                   <TableHead>Status</TableHead>
@@ -473,6 +543,21 @@ export default function TaskManagement() {
               <TableBody>
                 {tasks.map((task) => (
                   <TableRow key={task.id} data-testid={`row-task-${task.id}`}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedTaskIds.has(task.id)}
+                        onCheckedChange={(checked) => {
+                          const newSelected = new Set(selectedTaskIds);
+                          if (checked) {
+                            newSelected.add(task.id);
+                          } else {
+                            newSelected.delete(task.id);
+                          }
+                          setSelectedTaskIds(newSelected);
+                        }}
+                        data-testid={`checkbox-task-${task.id}`}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{task.claimNumber}</TableCell>
                     <TableCell>
                       <Badge variant={getPriorityBadgeVariant(task.priority)} data-testid={`badge-priority-${task.id}`}>
@@ -1214,6 +1299,62 @@ export default function TaskManagement() {
                 data-testid="button-confirm-upload"
               >
                 {uploadFileMutation.isPending ? 'Uploading...' : 'Upload & Import'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isBulkAssignDialogOpen} onOpenChange={setIsBulkAssignDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bulk Assign Tasks</DialogTitle>
+            <DialogDescription>
+              Assign {selectedTaskIds.size} selected task(s) to a team member
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Assign To</label>
+              <Select
+                value={bulkAssignUserId}
+                onValueChange={setBulkAssignUserId}
+              >
+                <SelectTrigger data-testid="select-bulk-assign-user">
+                  <SelectValue placeholder="Select team member" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {(usersData || []).map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.firstName} {user.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsBulkAssignDialogOpen(false);
+                  setBulkAssignUserId("");
+                }}
+                data-testid="button-cancel-bulk-assign"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  bulkAssignMutation.mutate({
+                    taskIds: Array.from(selectedTaskIds),
+                    assignedTo: bulkAssignUserId === 'unassigned' ? null : bulkAssignUserId
+                  });
+                }}
+                disabled={!bulkAssignUserId || bulkAssignMutation.isPending}
+                data-testid="button-confirm-bulk-assign"
+              >
+                {bulkAssignMutation.isPending ? 'Assigning...' : 'Assign Tasks'}
               </Button>
             </div>
           </div>

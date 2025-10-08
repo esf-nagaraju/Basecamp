@@ -373,6 +373,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/tasks/bulk-assign', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId, userId } = await getUserContext(req);
+      
+      const { taskIds, assignedTo } = req.body;
+      
+      if (!Array.isArray(taskIds) || taskIds.length === 0) {
+        return res.status(400).json({ message: "taskIds must be a non-empty array" });
+      }
+      
+      if (assignedTo !== null && typeof assignedTo !== 'string') {
+        return res.status(400).json({ message: "assignedTo must be a string or null" });
+      }
+      
+      const count = await storage.bulkAssignTasks(taskIds, tenantId, assignedTo);
+      
+      await storage.createActivityLog({
+        tenantId,
+        userId,
+        action: "tasks_bulk_assigned",
+        details: { taskCount: count, assignedTo },
+      });
+      
+      res.json({ count, assignedTo });
+    } catch (error) {
+      console.error("Error bulk assigning tasks:", error);
+      res.status(500).json({ message: "Failed to bulk assign tasks" });
+    }
+  });
+
   app.patch('/api/tasks/:id', isAuthenticated, async (req: any, res) => {
     try {
       const { tenantId, userId } = await getUserContext(req);

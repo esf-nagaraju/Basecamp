@@ -50,6 +50,7 @@ export interface IStorage {
   createTask(task: InsertTask): Promise<Task>;
   bulkCreateTasks(tasks: InsertTask[]): Promise<Task[]>;
   updateTask(id: string, tenantId: string, updates: Partial<InsertTask>): Promise<Task | undefined>;
+  bulkAssignTasks(taskIds: string[], tenantId: string, assignedTo: string | null): Promise<number>;
   startTaskTimer(id: string, tenantId: string): Promise<Task | undefined>;
   stopTaskTimer(id: string, tenantId: string): Promise<Task | undefined>;
   
@@ -502,6 +503,22 @@ export class DbStorage implements IStorage {
       .where(and(eq(tasks.id, id), eq(tasks.tenantId, tenantId)))
       .returning();
     return result[0];
+  }
+
+  async bulkAssignTasks(
+    taskIds: string[],
+    tenantId: string,
+    assignedTo: string | null
+  ): Promise<number> {
+    const result = await db
+      .update(tasks)
+      .set({ assignedTo, updatedAt: new Date() })
+      .where(and(
+        inArray(tasks.id, taskIds),
+        eq(tasks.tenantId, tenantId)
+      ))
+      .returning({ id: tasks.id });
+    return result.length;
   }
 
   async getTasksWithDetails(tenantId: string, filters: TaskFilters = {}): Promise<{ tasks: TaskWithDetails[], totalCount: number }> {
