@@ -185,12 +185,12 @@ export function AppSidebar() {
         </div>
         <Button
           variant="outline"
-          size="sm"
-          className="w-full group-data-[collapsible=icon]:hidden"
+          size={state === "collapsed" ? "icon" : "sm"}
+          className="w-full group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:min-w-0"
           onClick={handleLogout}
           data-testid="button-logout"
         >
-          <LogOut className="h-4 w-4 group-data-[collapsible=icon]:hidden mr-2" />
+          <LogOut className="h-4 w-4 group-data-[collapsible=icon]:mr-0 mr-2" />
           <span className="group-data-[collapsible=icon]:hidden">Log Out</span>
         </Button>
       </SidebarFooter>
