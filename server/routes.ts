@@ -34,9 +34,25 @@ async function getUserContext(req: any): Promise<{ userId: string; tenantId: str
     throw new Error("User not found");
   }
   
+  // Use active tenant from session, fallback to user's primary tenant
+  const tenantId = req.session.activeTenantId || user.tenantId;
+  
+  // Verify user has access to this tenant
+  const userTenants = await storage.getUserTenants(userId);
+  const hasAccess = userTenants.some(t => t.id === tenantId) || user.tenantId === tenantId;
+  
+  if (!hasAccess) {
+    // Reset to primary tenant if no access
+    req.session.activeTenantId = user.tenantId;
+    return {
+      userId,
+      tenantId: user.tenantId,
+    };
+  }
+  
   return {
     userId,
-    tenantId: user.tenantId,
+    tenantId,
   };
 }
 
