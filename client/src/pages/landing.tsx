@@ -58,8 +58,8 @@ export default function Landing() {
           {/* Right side - Blue gradient showcase */}
           <div className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 p-8 lg:p-12 flex flex-col justify-center text-white">
             {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500 rounded-full opacity-20 blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500 rounded-full opacity-20 blur-3xl" />
+            <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500 rounded-full opacity-20 blur-3xl" aria-hidden="true" />
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500 rounded-full opacity-20 blur-3xl" aria-hidden="true" />
             
             <div className="relative z-10 space-y-8">
               <div>
@@ -72,18 +72,18 @@ export default function Landing() {
               </div>
 
               {/* Dashboard preview mockup */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20" data-testid="dashboard-preview">
                 <div className="space-y-4">
                   {/* Metric cards */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/10 rounded-lg p-4">
+                    <div className="bg-white/10 rounded-lg p-4" data-testid="metric-total-balance">
                       <div className="flex items-center gap-2 mb-2">
                         <BarChart3 className="h-5 w-5 text-indigo-300" />
                         <span className="text-sm text-indigo-200">Total Balance</span>
                       </div>
                       <p className="text-2xl font-bold">$857.1K</p>
                     </div>
-                    <div className="bg-white/10 rounded-lg p-4">
+                    <div className="bg-white/10 rounded-lg p-4" data-testid="metric-claims">
                       <div className="flex items-center gap-2 mb-2">
                         <TrendingUp className="h-5 w-5 text-green-300" />
                         <span className="text-sm text-indigo-200">Claims</span>
@@ -110,18 +110,18 @@ export default function Landing() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-6 pt-4">
-                <div className="text-center">
+              <div className="flex flex-wrap items-center gap-6 pt-4" data-testid="stats-bar">
+                <div className="text-center" data-testid="stat-claims-processed">
                   <p className="text-3xl font-bold">5M+</p>
                   <p className="text-sm text-indigo-200">Claims Processed</p>
                 </div>
-                <div className="h-12 w-px bg-white/30" />
-                <div className="text-center">
+                <div className="h-12 w-px bg-white/30" aria-hidden="true" />
+                <div className="text-center" data-testid="stat-uptime">
                   <p className="text-3xl font-bold">99.9%</p>
                   <p className="text-sm text-indigo-200">Uptime</p>
                 </div>
-                <div className="h-12 w-px bg-white/30" />
-                <div className="text-center">
+                <div className="h-12 w-px bg-white/30" aria-hidden="true" />
+                <div className="text-center" data-testid="stat-support">
                   <p className="text-3xl font-bold">24/7</p>
                   <p className="text-sm text-indigo-200">Support</p>
                 </div>
