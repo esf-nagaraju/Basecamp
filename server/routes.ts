@@ -181,7 +181,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/users', isAuthenticated, async (req: any, res) => {
     try {
-      const { tenantId } = await getUserContext(req);
+      const { userId, tenantId } = await getUserContext(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'system_administrator') {
+        return res.status(403).json({ message: "Only System Administrators can access user management" });
+      }
+      
       const users = await storage.getUsers(tenantId);
       
       const safeUsers = users.map(({ password, ...user }) => user);
@@ -189,6 +195,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.patch('/api/users/:id/role', isAuthenticated, async (req: any, res) => {
+    try {
+      const { userId, tenantId } = await getUserContext(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'system_administrator') {
+        return res.status(403).json({ message: "Only System Administrators can update user roles" });
+      }
+
+      const { role } = req.body;
+      const validRoles = ['rcm_specialist', 'manager', 'system_administrator', 'client_user', 'auditor'];
+      
+      if (!role || !validRoles.includes(role)) {
+        return res.status(400).json({ message: "Invalid role specified" });
+      }
+
+      // Verify the target user belongs to the same tenant
+      const targetUser = await storage.getUser(req.params.id);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (targetUser.tenantId !== tenantId) {
+        return res.status(403).json({ message: "Cannot update users from different tenants" });
+      }
+
+      const updatedUser = await storage.updateUserRole(req.params.id, role);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { password, ...safeUser } = updatedUser;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ message: "Failed to update user role" });
     }
   });
 

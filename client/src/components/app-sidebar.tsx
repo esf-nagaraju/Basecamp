@@ -10,6 +10,7 @@ import {
   LogOut,
   Upload,
   TrendingUp,
+  UserCog,
 } from "lucide-react";
 import {
   Sidebar,
@@ -77,6 +78,12 @@ const menuItems = [
     url: "/productivity",
     icon: TrendingUp,
     roles: [USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
+  },
+  {
+    title: "User Management",
+    url: "/team-management",
+    icon: UserCog,
+    roles: [USER_ROLES.SYSTEM_ADMINISTRATOR],
   },
   {
     title: "Settings",
