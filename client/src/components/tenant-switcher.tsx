@@ -43,10 +43,11 @@ export function TenantSwitcher() {
     mutationFn: async (tenantId: string) => {
       return apiRequest('POST', '/api/user/switch-tenant', { tenantId });
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: any, tenantId: string) => {
+      const selectedTenant = tenants.find(t => t.id === tenantId);
       toast({
         title: "Tenant Switched",
-        description: `Now viewing ${data.activeTenantName}`,
+        description: `Now viewing ${selectedTenant?.name || data.activeTenantName}`,
       });
       
       // Invalidate all queries to refresh data for the new tenant

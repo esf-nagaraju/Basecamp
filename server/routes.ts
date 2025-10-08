@@ -39,7 +39,17 @@ async function getUserContext(req: any): Promise<{ userId: string; tenantId: str
   
   // Verify user has access to this tenant
   const userTenants = await storage.getUserTenants(userId);
-  const hasAccess = userTenants.some(t => t.id === tenantId) || user.tenantId === tenantId;
+  
+  // If user has no user_tenants entries, allow access to all tenants (for demo/testing)
+  let hasAccess = false;
+  if (userTenants.length === 0) {
+    // No restrictions - check if tenant exists
+    const tenant = await storage.getTenant(tenantId);
+    hasAccess = !!tenant;
+  } else {
+    // Check explicit access
+    hasAccess = userTenants.some(t => t.id === tenantId) || user.tenantId === tenantId;
+  }
   
   if (!hasAccess) {
     // Reset to primary tenant if no access
@@ -98,16 +108,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const additionalTenants = await storage.getUserTenants(userId);
       const primaryTenant = await storage.getTenant(user.tenantId);
       
-      // Combine and deduplicate
-      const tenantMap = new Map();
-      if (primaryTenant) {
-        tenantMap.set(primaryTenant.id, primaryTenant);
+      // If user has no additional tenants, grant access to all tenants (for demo/testing)
+      let tenants;
+      if (additionalTenants.length === 0) {
+        tenants = await storage.getTenants();
+      } else {
+        // Combine and deduplicate
+        const tenantMap = new Map();
+        if (primaryTenant) {
+          tenantMap.set(primaryTenant.id, primaryTenant);
+        }
+        additionalTenants.forEach(t => tenantMap.set(t.id, t));
+        
+        tenants = Array.from(tenantMap.values());
       }
-      additionalTenants.forEach(t => tenantMap.set(t.id, t));
       
-      const tenants = Array.from(tenantMap.values()).sort((a, b) => 
-        a.name.localeCompare(b.name)
-      );
+      tenants.sort((a, b) => a.name.localeCompare(b.name));
       
       res.json(tenants);
     } catch (error) {
@@ -132,7 +148,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify user has access to this tenant
       const userTenants = await storage.getUserTenants(userId);
-      const hasAccess = userTenants.some(t => t.id === tenantId) || user.tenantId === tenantId;
+      
+      // If user has no user_tenants entries, allow access to all tenants (for demo/testing)
+      let hasAccess = false;
+      if (userTenants.length === 0) {
+        // No restrictions - check if tenant exists
+        const tenant = await storage.getTenant(tenantId);
+        hasAccess = !!tenant;
+      } else {
+        // Check explicit access
+        hasAccess = userTenants.some(t => t.id === tenantId) || user.tenantId === tenantId;
+      }
       
       if (!hasAccess) {
         return res.status(403).json({ message: "Access denied to this tenant" });
