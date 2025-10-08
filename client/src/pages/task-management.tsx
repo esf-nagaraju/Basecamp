@@ -336,10 +336,7 @@ export default function TaskManagement() {
                   <TableHead>Assigned To</TableHead>
                   <TableHead>Time Spent</TableHead>
                   <TableHead>Invoice Date</TableHead>
-                  <TableHead>Invoice Age</TableHead>
-                  <TableHead>Invoice Age Bucket</TableHead>
                   <TableHead>Date of Service</TableHead>
-                  <TableHead>DOS Age Bucket</TableHead>
                   <TableHead>Resolution Category</TableHead>
                   <TableHead>Root Cause Category</TableHead>
                   <TableHead>Root Cause Detail</TableHead>
@@ -386,17 +383,8 @@ export default function TaskManagement() {
                     <TableCell data-testid={`text-invoice-date-${task.id}`}>
                       {task.invoiceDate || '-'}
                     </TableCell>
-                    <TableCell data-testid={`text-invoice-age-${task.id}`}>
-                      {task.invoiceAge !== null ? task.invoiceAge : '-'}
-                    </TableCell>
-                    <TableCell data-testid={`text-invoice-age-bucket-${task.id}`}>
-                      {task.invoiceAgeBucket || '-'}
-                    </TableCell>
                     <TableCell data-testid={`text-date-of-service-${task.id}`}>
                       {task.dateOfService || '-'}
-                    </TableCell>
-                    <TableCell data-testid={`text-dos-age-bucket-${task.id}`}>
-                      {task.dosAgeBucket || '-'}
                     </TableCell>
                     <TableCell data-testid={`text-resolution-category-${task.id}`}>
                       {task.resolutionCategory || '-'}
