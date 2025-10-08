@@ -3,6 +3,16 @@ import { pgTable, text, varchar, timestamp, integer, decimal, jsonb, boolean, in
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const USER_ROLES = {
+  RCM_SPECIALIST: "rcm_specialist",
+  MANAGER: "manager",
+  SYSTEM_ADMINISTRATOR: "system_administrator",
+  CLIENT_USER: "client_user",
+  AUDITOR: "auditor",
+} as const;
+
+export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
+
 export const tenants = pgTable("tenants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -30,7 +40,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  role: text("role").notNull().default("agent"),
+  role: text("role").notNull().default(USER_ROLES.RCM_SPECIALIST),
   fullName: text("full_name"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),

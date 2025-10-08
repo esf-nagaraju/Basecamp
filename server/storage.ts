@@ -23,6 +23,7 @@ import {
   activityLogs,
   csvImports,
   csvImportRows,
+  USER_ROLES,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -201,7 +202,7 @@ export class DbStorage implements IStorage {
     }
     
     const tenantId = defaultTenant[0].id;
-    const role = userData.role || 'agent';
+    const role = userData.role || USER_ROLES.RCM_SPECIALIST;
     
     const [user] = await db
       .insert(users)

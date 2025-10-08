@@ -27,61 +27,62 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { USER_ROLES } from "@shared/schema";
 
 const menuItems = [
   {
     title: "Dashboard",
     url: "/",
     icon: LayoutDashboard,
-    roles: ["agent", "lead", "manager", "admin"],
+    roles: [USER_ROLES.RCM_SPECIALIST, USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR, USER_ROLES.CLIENT_USER, USER_ROLES.AUDITOR],
   },
   {
     title: "My Worklist",
     url: "/worklist",
     icon: ClipboardList,
-    roles: ["agent"],
+    roles: [USER_ROLES.RCM_SPECIALIST],
   },
   {
     title: "Team Management",
     url: "/team",
     icon: Users,
-    roles: ["lead", "manager", "admin"],
+    roles: [USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
   },
   {
     title: "Analytics",
     url: "/analytics",
     icon: BarChart3,
-    roles: ["lead", "manager", "admin"],
+    roles: [USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR, USER_ROLES.CLIENT_USER, USER_ROLES.AUDITOR],
   },
   {
     title: "Claims",
     url: "/claims",
     icon: FileText,
-    roles: ["agent", "lead", "manager", "admin"],
+    roles: [USER_ROLES.RCM_SPECIALIST, USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR, USER_ROLES.AUDITOR],
   },
   {
     title: "Denials",
     url: "/denials",
     icon: AlertCircle,
-    roles: ["agent", "lead", "manager", "admin"],
+    roles: [USER_ROLES.RCM_SPECIALIST, USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
   },
   {
     title: "Task Management",
     url: "/task-management",
     icon: Upload,
-    roles: ["agent", "lead", "manager", "admin"],
+    roles: [USER_ROLES.RCM_SPECIALIST, USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
   },
   {
     title: "Productivity",
     url: "/productivity",
     icon: TrendingUp,
-    roles: ["lead", "manager", "admin"],
+    roles: [USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
   },
   {
     title: "Settings",
     url: "/settings",
     icon: Settings,
-    roles: ["agent", "lead", "manager", "admin"],
+    roles: [USER_ROLES.SYSTEM_ADMINISTRATOR],
   },
 ];
 
@@ -89,10 +90,10 @@ export function AppSidebar() {
   const [location] = useLocation();
   const { user } = useAuth();
   const { state } = useSidebar();
-  const currentRole = user?.role || "agent";
+  const currentRole = (user?.role || USER_ROLES.RCM_SPECIALIST) as string;
 
   const filteredItems = menuItems.filter((item) =>
-    item.roles.includes(currentRole)
+    item.roles.includes(currentRole as any)
   );
 
   const handleLogout = () => {
@@ -118,11 +119,11 @@ export function AppSidebar() {
 
   const getRoleLabel = (role: string) => {
     const roleMap: Record<string, string> = {
-      agent: "AR Specialist",
-      lead: "Team Lead",
-      manager: "AR Manager",
-      client: "Client",
-      admin: "Administrator",
+      [USER_ROLES.RCM_SPECIALIST]: "RCM Specialist",
+      [USER_ROLES.MANAGER]: "Manager",
+      [USER_ROLES.SYSTEM_ADMINISTRATOR]: "System Administrator",
+      [USER_ROLES.CLIENT_USER]: "Client User",
+      [USER_ROLES.AUDITOR]: "Auditor",
     };
     return roleMap[role] || role;
   };
@@ -161,22 +162,6 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Administration</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild data-testid="link-settings">
-                  <Link href="/settings">
-                    <Settings className="h-5 w-5" />
-                    <span>Settings</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, DollarSign, CheckCircle2, Phone, Clock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { USER_ROLES } from "@shared/schema";
 
 interface ProductivityRecord {
   id: string;
@@ -147,7 +148,7 @@ export default function Productivity() {
   const [, navigate] = useLocation();
 
   useEffect(() => {
-    if (!isLoading && (!user || (user.role !== "lead" && user.role !== "manager"))) {
+    if (!isLoading && (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR))) {
       navigate("/");
     }
   }, [user, isLoading, navigate]);
@@ -156,7 +157,7 @@ export default function Productivity() {
     return <div className="flex items-center justify-center h-full">Loading...</div>;
   }
 
-  if (!user || (user.role !== "lead" && user.role !== "manager")) {
+  if (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR)) {
     return null;
   }
 
