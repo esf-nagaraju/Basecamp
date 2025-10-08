@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TenantSwitcher } from "@/components/tenant-switcher";
 import { useAuth } from "@/hooks/useAuth";
 import Dashboard from "@/pages/dashboard";
 import Landing from "@/pages/landing";
@@ -59,9 +60,7 @@ function AppLayout() {
           <header className="flex items-center justify-between p-4 border-b h-16">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium hidden sm:inline">
-                Acme Healthcare
-              </span>
+              <TenantSwitcher />
               <ThemeToggle />
             </div>
           </header>
