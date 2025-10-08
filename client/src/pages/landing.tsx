@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { FileText, TrendingUp, AlertCircle, BarChart3, Clock, DollarSign } from "lucide-react";
+import { ClipboardList, BarChart3, TrendingUp, CheckCircle2 } from "lucide-react";
 
 export default function Landing() {
   const handleLogin = () => {
@@ -7,117 +7,124 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden">
-      {/* Purple gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600" />
-      
-      {/* Decorative medical cross */}
-      <div className="absolute top-8 right-8 opacity-20">
-        <svg width="80" height="80" viewBox="0 0 80 80" fill="none" className="text-white">
-          <path d="M50 10H30V30H10V50H30V70H50V50H70V30H50V10Z" stroke="currentColor" strokeWidth="2" fill="none" />
-        </svg>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-950">
+      <div className="w-full max-w-7xl mx-auto bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden m-4">
+        <div className="grid lg:grid-cols-2 min-h-[600px]">
+          {/* Left side - Login form */}
+          <div className="flex flex-col p-8 lg:p-12">
+            {/* Logo */}
+            <div className="flex items-center gap-3 mb-12">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-lg">
+                <ClipboardList className="h-6 w-6" />
+              </div>
+              <span className="text-xl font-bold text-slate-900 dark:text-white">ClaimFlowPro</span>
+            </div>
 
-      {/* Main container */}
-      <div className="relative w-full max-w-6xl bg-slate-900 rounded-3xl shadow-2xl overflow-hidden">
-        <div className="grid lg:grid-cols-2 gap-0">
-          {/* Left side - Feature showcase */}
-          <div className="p-8 lg:p-12 flex flex-col justify-center space-y-8 relative">
-            {/* Decorative gradient orbs */}
-            <div className="absolute top-10 left-10 w-32 h-32 bg-blue-500 rounded-full opacity-20 blur-3xl" />
-            <div className="absolute bottom-20 right-10 w-40 h-40 bg-purple-500 rounded-full opacity-20 blur-3xl" />
-            
-            <div className="relative space-y-6">
-              {/* Feature card 1 */}
-              <div className="bg-blue-500/20 backdrop-blur-sm rounded-2xl p-6 border border-blue-400/30 hover-elevate transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-blue-500 rounded-xl">
-                    <FileText className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-semibold text-lg">Manage Claims</h3>
-                    <p className="text-blue-200 text-sm mt-1">Track and process medical claims efficiently</p>
-                  </div>
-                </div>
+            {/* Login form area */}
+            <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
+              <div className="text-center mb-8">
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-3">
+                  Welcome Back
+                </h1>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Sign in to access your healthcare AR dashboard
+                </p>
               </div>
 
-              {/* Feature card 2 */}
-              <div className="bg-purple-500/20 backdrop-blur-sm rounded-2xl p-6 border border-purple-400/30 hover-elevate transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-purple-500 rounded-xl">
-                    <AlertCircle className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-semibold text-lg">Track Denials</h3>
-                    <p className="text-purple-200 text-sm mt-1">Monitor and resolve claim denials quickly</p>
-                  </div>
-                </div>
-              </div>
+              <div className="space-y-6">
+                <Button
+                  data-testid="button-login"
+                  onClick={handleLogin}
+                  className="w-full h-12 text-base bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
+                  size="lg"
+                >
+                  Sign in with Replit
+                </Button>
 
-              {/* Feature card 3 */}
-              <div className="bg-indigo-500/20 backdrop-blur-sm rounded-2xl p-6 border border-indigo-400/30 hover-elevate transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-indigo-500 rounded-xl">
-                    <BarChart3 className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-semibold text-lg">Analytics Dashboard</h3>
-                    <p className="text-indigo-200 text-sm mt-1">Real-time insights on AR performance</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Additional mini features */}
-              <div className="flex gap-4 pt-4">
-                <div className="flex items-center gap-2 text-slate-300">
-                  <Clock className="h-4 w-4" />
-                  <span className="text-sm">Time Tracking</span>
-                </div>
-                <div className="flex items-center gap-2 text-slate-300">
-                  <DollarSign className="h-4 w-4" />
-                  <span className="text-sm">Revenue Cycle</span>
-                </div>
-                <div className="flex items-center gap-2 text-slate-300">
-                  <TrendingUp className="h-4 w-4" />
-                  <span className="text-sm">Performance</span>
+                <div className="text-center">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Secure authentication powered by Replit
+                  </p>
                 </div>
               </div>
             </div>
+
+            {/* Footer */}
+            <div className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
+              © 2025 ClaimFlowPro. All rights reserved.
+            </div>
           </div>
 
-          {/* Right side - Login card */}
-          <div className="p-8 lg:p-12 flex items-center justify-center bg-slate-800/50">
-            <div className="w-full max-w-md">
-              <div className="bg-white rounded-2xl p-8 shadow-xl">
-                <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold text-slate-900 mb-2">
-                    Login to your account
-                  </h1>
-                  <p className="text-slate-600">
-                    One place for all your AR management needs
-                  </p>
-                </div>
+          {/* Right side - Blue gradient showcase */}
+          <div className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 p-8 lg:p-12 flex flex-col justify-center text-white">
+            {/* Decorative elements */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500 rounded-full opacity-20 blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500 rounded-full opacity-20 blur-3xl" />
+            
+            <div className="relative z-10 space-y-8">
+              <div>
+                <h2 className="text-4xl font-bold mb-4">
+                  Effortlessly manage your healthcare AR operations
+                </h2>
+                <p className="text-indigo-100 text-lg">
+                  Access your comprehensive claims dashboard and streamline your revenue cycle management
+                </p>
+              </div>
 
-                <div className="space-y-6">
-                  <Button
-                    data-testid="button-login"
-                    onClick={handleLogin}
-                    className="w-full h-12 text-base bg-purple-600 text-white"
-                    size="lg"
-                  >
-                    Sign in with Replit
-                  </Button>
+              {/* Dashboard preview mockup */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                <div className="space-y-4">
+                  {/* Metric cards */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/10 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <BarChart3 className="h-5 w-5 text-indigo-300" />
+                        <span className="text-sm text-indigo-200">Total Balance</span>
+                      </div>
+                      <p className="text-2xl font-bold">$857.1K</p>
+                    </div>
+                    <div className="bg-white/10 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="h-5 w-5 text-green-300" />
+                        <span className="text-sm text-indigo-200">Claims</span>
+                      </div>
+                      <p className="text-2xl font-bold">1,247</p>
+                    </div>
+                  </div>
 
-                  <div className="text-center text-sm text-slate-500">
-                    Secure authentication powered by Replit
+                  {/* Features list */}
+                  <div className="space-y-3 pt-4">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-300" />
+                      <span className="text-indigo-100">Real-time claim tracking</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-300" />
+                      <span className="text-indigo-100">Automated denial management</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-300" />
+                      <span className="text-indigo-100">Performance analytics</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-8 text-center">
-                <p className="text-slate-400 italic">
-                  "Fast, simple, and trusted healthcare AR management"
-                </p>
+              <div className="flex items-center gap-6 pt-4">
+                <div className="text-center">
+                  <p className="text-3xl font-bold">5M+</p>
+                  <p className="text-sm text-indigo-200">Claims Processed</p>
+                </div>
+                <div className="h-12 w-px bg-white/30" />
+                <div className="text-center">
+                  <p className="text-3xl font-bold">99.9%</p>
+                  <p className="text-sm text-indigo-200">Uptime</p>
+                </div>
+                <div className="h-12 w-px bg-white/30" />
+                <div className="text-center">
+                  <p className="text-3xl font-bold">24/7</p>
+                  <p className="text-sm text-indigo-200">Support</p>
+                </div>
               </div>
             </div>
           </div>
