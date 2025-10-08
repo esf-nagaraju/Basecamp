@@ -16,6 +16,8 @@ import {
   type InsertCsvImport,
   type CsvImportRow,
   type InsertCsvImportRow,
+  type UserTenant,
+  type InsertUserTenant,
   users,
   tenants,
   claims,
@@ -23,6 +25,7 @@ import {
   activityLogs,
   csvImports,
   csvImportRows,
+  userTenants,
   USER_ROLES,
 } from "@shared/schema";
 
@@ -34,7 +37,12 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   
   getTenant(id: string): Promise<Tenant | undefined>;
+  getTenants(): Promise<Tenant[]>;
   createTenant(tenant: InsertTenant): Promise<Tenant>;
+  
+  getUserTenants(userId: string): Promise<Tenant[]>;
+  addUserTenant(userId: string, tenantId: string): Promise<UserTenant>;
+  removeUserTenant(userId: string, tenantId: string): Promise<void>;
   
   getClaim(id: string, tenantId: string): Promise<Claim | undefined>;
   getClaims(tenantId: string, filters?: ClaimFilters): Promise<Claim[]>;
@@ -239,9 +247,45 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
+  async getTenants(): Promise<Tenant[]> {
+    return await db.select().from(tenants).orderBy(tenants.name);
+  }
+
   async createTenant(tenant: InsertTenant): Promise<Tenant> {
     const result = await db.insert(tenants).values(tenant).returning();
     return result[0];
+  }
+
+  async getUserTenants(userId: string): Promise<Tenant[]> {
+    const result = await db
+      .select({
+        id: tenants.id,
+        name: tenants.name,
+        settings: tenants.settings,
+        createdAt: tenants.createdAt,
+      })
+      .from(userTenants)
+      .innerJoin(tenants, eq(userTenants.tenantId, tenants.id))
+      .where(eq(userTenants.userId, userId))
+      .orderBy(tenants.name);
+    return result;
+  }
+
+  async addUserTenant(userId: string, tenantId: string): Promise<UserTenant> {
+    const result = await db
+      .insert(userTenants)
+      .values({ userId, tenantId })
+      .returning();
+    return result[0];
+  }
+
+  async removeUserTenant(userId: string, tenantId: string): Promise<void> {
+    await db
+      .delete(userTenants)
+      .where(and(
+        eq(userTenants.userId, userId),
+        eq(userTenants.tenantId, tenantId)
+      ));
   }
 
   async getClaim(id: string, tenantId: string): Promise<Claim | undefined> {
