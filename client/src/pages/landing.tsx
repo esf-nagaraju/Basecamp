@@ -102,7 +102,7 @@ export default function Landing() {
                   <Button
                     data-testid="button-login"
                     onClick={handleLogin}
-                    className="w-full h-12 text-base bg-purple-600 hover:bg-purple-700 text-white"
+                    className="w-full h-12 text-base bg-purple-600 text-white"
                     size="lg"
                   >
                     Sign in with Replit
