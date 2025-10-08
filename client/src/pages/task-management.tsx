@@ -594,16 +594,16 @@ export default function TaskManagement() {
                 <div>
                   <label className="text-sm font-medium">Assigned To</label>
                   <Select
-                    value={currentTaskData.assignedTo || ''}
+                    value={currentTaskData.assignedTo || 'unassigned'}
                     onValueChange={(value) => {
-                      setLocalTaskChanges(prev => ({ ...prev, assignedTo: value || null }));
+                      setLocalTaskChanges(prev => ({ ...prev, assignedTo: value === 'unassigned' ? null : value }));
                     }}
                   >
                     <SelectTrigger className="mt-1" data-testid="select-assigned-to">
-                      <SelectValue placeholder="Unassigned" />
+                      <SelectValue placeholder="Select user" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
                       {(usersData || []).map((user) => (
                         <SelectItem key={user.id} value={user.id}>
                           {user.firstName} {user.lastName}
