@@ -2,7 +2,7 @@
 
 ## Overview
 
-ClaimFlowPro is a multi-tenant healthcare accounts receivable (AR) management system designed for medical claims processing. The application enables healthcare organizations to manage claims workflows, track denials, monitor productivity metrics, and automate task prioritization. Built for enterprise use, it supports role-based access control (agent, lead, manager) and provides comprehensive financial intelligence for medical billing operations.
+ClaimFlowPro is a multi-tenant healthcare accounts receivable (AR) management system designed for medical claims processing. The application enables healthcare organizations to manage claims workflows, track denials, monitor productivity metrics, and automate task prioritization. Built for enterprise use, it supports role-based access control with 5 distinct roles (RCM Specialist, Manager, System Administrator, Client User, Auditor) and provides comprehensive financial intelligence for medical billing operations.
 
 ## User Preferences
 
@@ -84,8 +84,14 @@ The application follows Microsoft Fluent Design guidelines optimized for data-he
    
 2. **Users Table:** User authentication and profile
    - Support for both Replit Auth (via `replitId`) and username/password
-   - Role-based access (agent, lead, manager)
+   - Role-based access control with 5 defined roles:
+     - **RCM Specialist** (`rcm_specialist`): Works assigned claim tasks, logs time, updates status/resolution, escalates issues
+     - **Manager** (`manager`): Oversees workload, handles escalations, reviews dashboards and targets
+     - **System Administrator** (`system_administrator`): Manages tenants, users, roles, branding, and access policies
+     - **Client User** (`client_user`): View-only access to their own tenant's dashboards and reports
+     - **Auditor** (`auditor`): Read-only access to immutable task histories and system logs
    - Tenant association for data isolation
+   - Default role: `rcm_specialist` for new users
 
 3. **Claims Table:** Medical claim records
    - Patient demographics (name, DOB, customer ID)
