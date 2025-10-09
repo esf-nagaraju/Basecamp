@@ -899,7 +899,7 @@ export default function TaskManagement() {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Priority</label>
+                  <label className="text-sm font-medium">Risk Score</label>
                   <Select
                     value={currentTaskData.priority || ''}
                     onValueChange={(value) => {
@@ -907,12 +907,19 @@ export default function TaskManagement() {
                     }}
                   >
                     <SelectTrigger className="mt-1" data-testid="select-priority">
-                      <SelectValue placeholder="Select priority" />
+                      <SelectValue placeholder="Select risk score" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="1">1</SelectItem>
+                      <SelectItem value="2">2</SelectItem>
+                      <SelectItem value="3">3</SelectItem>
+                      <SelectItem value="4">4</SelectItem>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="6">6</SelectItem>
+                      <SelectItem value="7">7</SelectItem>
+                      <SelectItem value="8">8</SelectItem>
+                      <SelectItem value="9">9</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -949,33 +956,352 @@ export default function TaskManagement() {
                 </div>
               </div>
 
-              <div>
-                <label className="text-sm font-medium">Progress</label>
-                <div className="mt-2 space-y-3">
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      value={[currentTaskData.progressPercent || 0]}
-                      onValueChange={(value) => {
-                        setLocalTaskChanges(prev => ({ ...prev, progressPercent: value[0] }));
-                      }}
-                      max={100}
-                      step={5}
-                      className="flex-1"
-                      data-testid="slider-progress"
+              <div className="pt-4 border-t">
+                <h3 className="text-sm font-semibold mb-4">Claim Details</h3>
+                
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label className="text-sm font-medium">Line of Business</label>
+                    <Select
+                      value={currentTaskData.lineOfBusiness || 'NONE'}
+                      disabled
+                    >
+                      <SelectTrigger className="mt-1 bg-muted" data-testid="select-claim-line-of-business">
+                        <SelectValue placeholder="Select Line of Business" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">None</SelectItem>
+                        {LINES_OF_BUSINESS.map(lob => (
+                          <SelectItem key={lob} value={lob}>{lob}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Criteria</label>
+                    <Select
+                      value={currentTaskData.criteria || 'NONE'}
+                      disabled
+                    >
+                      <SelectTrigger className="mt-1 bg-muted" data-testid="select-claim-criteria">
+                        <SelectValue placeholder="Select Criteria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">None</SelectItem>
+                        {CRITERIA_OPTIONS.map(criteria => (
+                          <SelectItem key={criteria} value={criteria}>{criteria}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Team</label>
+                    <Select
+                      value={currentTaskData.team || 'NONE'}
+                      disabled
+                    >
+                      <SelectTrigger className="mt-1 bg-muted" data-testid="select-claim-team">
+                        <SelectValue placeholder="Select Team" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">None</SelectItem>
+                        {TEAMS.map(team => (
+                          <SelectItem key={team} value={team}>{team}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Action/Status</label>
+                    <Input
+                      value={currentTaskData.accurioActionStatus || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-accurio-action-status"
                     />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Action Category</label>
+                    <Input
+                      value={currentTaskData.actionCategory || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-action-category"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Date of Service</label>
+                    <Input
+                      type="date"
+                      value={currentTaskData.dateOfService || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-date-of-service"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Date Claim Sent</label>
+                    <Input
+                      type="date"
+                      value={currentTaskData.dateClaimSent || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-date-claim-sent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Invoice Age Bucket</label>
+                    <Input
+                      value={currentTaskData.invoiceAgeBucket || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-invoice-age-bucket"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Follow Up Days</label>
                     <Input
                       type="number"
-                      value={currentTaskData.progressPercent || 0}
-                      onChange={(e) => {
-                        const value = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
-                        setLocalTaskChanges(prev => ({ ...prev, progressPercent: value }));
-                      }}
-                      min={0}
-                      max={100}
-                      className="w-20"
-                      data-testid="input-progress"
+                      value={currentTaskData.followUpDays?.toString() || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-follow-up-days"
                     />
-                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <h3 className="text-sm font-semibold mb-4">Provider Information</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Billing Provider</label>
+                    <Input
+                      value={currentTaskData.billingProvider || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-billing-provider"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Rendering Provider</label>
+                    <Input
+                      value={currentTaskData.renderingProvider || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-rendering-provider"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Location</label>
+                    <Input
+                      value={currentTaskData.location || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-location"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Servicing Location</label>
+                    <Input
+                      value={currentTaskData.servicingLocation || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-servicing-location"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <h3 className="text-sm font-semibold mb-4">Payor Information</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Payor ID</label>
+                    <Input
+                      value={currentTaskData.payorId || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-payor-id"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Payor Type</label>
+                    <Input
+                      value={currentTaskData.payorType || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-payor-type"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <h3 className="text-sm font-semibold mb-4">Financial Details</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Allowed Amount</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={currentTaskData.allowedAmount || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-allowed-amount"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Gross Amount</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={currentTaskData.grossAmount || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-gross-amount"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Payment</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={currentTaskData.payment || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-payment"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Total Balance</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={currentTaskData.totalBalance || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-total-balance"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Write-Offs</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={currentTaskData.writeOffs || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-write-offs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <h3 className="text-sm font-semibold mb-4">Additional Information</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Financial Class</label>
+                    <Input
+                      value={currentTaskData.financialClass || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-financial-class"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">NRC Contract</label>
+                    <Input
+                      value={currentTaskData.nrcContract || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-nrc-contract"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Pfx</label>
+                    <Input
+                      value={currentTaskData.pfx || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-pfx"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Sfx</label>
+                    <Input
+                      value={currentTaskData.sfx || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-sfx"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Error File</label>
+                    <Input
+                      value={currentTaskData.errorFile || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-error-file"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Max Create Date</label>
+                    <Input
+                      type="date"
+                      value={currentTaskData.maxCreateDate || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-max-create-date"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Fixed Denial</label>
+                    <Input
+                      value={currentTaskData.fixedDenial || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-fixed-denial"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Fixed Remark Code</label>
+                    <Input
+                      value={currentTaskData.fixedRemarkCode || ''}
+                      disabled
+                      className="mt-1 bg-muted"
+                      data-testid="input-fixed-remark-code"
+                    />
                   </div>
                 </div>
               </div>
@@ -1062,382 +1388,6 @@ export default function TaskManagement() {
                       ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="pt-4 border-t">
-                <h3 className="text-sm font-semibold mb-4">Claim Details</h3>
-                
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <label className="text-sm font-medium">Line of Business</label>
-                    <Select
-                      value={currentTaskData.lineOfBusiness || 'NONE'}
-                      onValueChange={(value) => {
-                        setLocalTaskChanges(prev => ({ ...prev, lineOfBusiness: value === 'NONE' ? null : value }));
-                      }}
-                    >
-                      <SelectTrigger className="mt-1" data-testid="select-claim-line-of-business">
-                        <SelectValue placeholder="Select Line of Business" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NONE">None</SelectItem>
-                        {LINES_OF_BUSINESS.map(lob => (
-                          <SelectItem key={lob} value={lob}>{lob}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Criteria</label>
-                    <Select
-                      value={currentTaskData.criteria || 'NONE'}
-                      onValueChange={(value) => {
-                        setLocalTaskChanges(prev => ({ ...prev, criteria: value === 'NONE' ? null : value }));
-                      }}
-                    >
-                      <SelectTrigger className="mt-1" data-testid="select-claim-criteria">
-                        <SelectValue placeholder="Select Criteria" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NONE">None</SelectItem>
-                        {CRITERIA_OPTIONS.map(criteria => (
-                          <SelectItem key={criteria} value={criteria}>{criteria}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Team</label>
-                    <Select
-                      value={currentTaskData.team || 'NONE'}
-                      onValueChange={(value) => {
-                        setLocalTaskChanges(prev => ({ ...prev, team: value === 'NONE' ? null : value }));
-                      }}
-                    >
-                      <SelectTrigger className="mt-1" data-testid="select-claim-team">
-                        <SelectValue placeholder="Select Team" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NONE">None</SelectItem>
-                        {TEAMS.map(team => (
-                          <SelectItem key={team} value={team}>{team}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Accurio Action/Status</label>
-                    <Input
-                      value={currentTaskData.accurioActionStatus || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, accurioActionStatus: e.target.value }))}
-                      placeholder="Enter status"
-                      className="mt-1"
-                      data-testid="input-accurio-action-status"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Action Category</label>
-                    <Input
-                      value={currentTaskData.actionCategory || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, actionCategory: e.target.value }))}
-                      placeholder="Enter action category"
-                      className="mt-1"
-                      data-testid="input-action-category"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Date of Service</label>
-                    <Input
-                      type="date"
-                      value={currentTaskData.dateOfService || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, dateOfService: e.target.value }))}
-                      className="mt-1"
-                      data-testid="input-date-of-service"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Date Claim Sent</label>
-                    <Input
-                      type="date"
-                      value={currentTaskData.dateClaimSent || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, dateClaimSent: e.target.value }))}
-                      className="mt-1"
-                      data-testid="input-date-claim-sent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Invoice Age Bucket</label>
-                    <Input
-                      value={currentTaskData.invoiceAgeBucket || ''}
-                      disabled
-                      className="mt-1 bg-muted"
-                      data-testid="input-invoice-age-bucket"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Follow Up Days</label>
-                    <Input
-                      type="number"
-                      value={currentTaskData.followUpDays?.toString() || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, followUpDays: parseInt(e.target.value) || 0 }))}
-                      placeholder="Enter follow up days"
-                      className="mt-1"
-                      data-testid="input-follow-up-days"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t">
-                <h3 className="text-sm font-semibold mb-4">Provider Information</h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Billing Provider</label>
-                    <Input
-                      value={currentTaskData.billingProvider || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, billingProvider: e.target.value }))}
-                      placeholder="Enter billing provider"
-                      className="mt-1"
-                      data-testid="input-billing-provider"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Rendering Provider</label>
-                    <Input
-                      value={currentTaskData.renderingProvider || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, renderingProvider: e.target.value }))}
-                      placeholder="Enter rendering provider"
-                      className="mt-1"
-                      data-testid="input-rendering-provider"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Location</label>
-                    <Input
-                      value={currentTaskData.location || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, location: e.target.value }))}
-                      placeholder="Enter location"
-                      className="mt-1"
-                      data-testid="input-location"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Servicing Location</label>
-                    <Input
-                      value={currentTaskData.servicingLocation || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, servicingLocation: e.target.value }))}
-                      placeholder="Enter servicing location"
-                      className="mt-1"
-                      data-testid="input-servicing-location"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t">
-                <h3 className="text-sm font-semibold mb-4">Payor Information</h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Payor ID</label>
-                    <Input
-                      value={currentTaskData.payorId || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, payorId: e.target.value }))}
-                      placeholder="Enter payor ID"
-                      className="mt-1"
-                      data-testid="input-payor-id"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Payor Type</label>
-                    <Input
-                      value={currentTaskData.payorType || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, payorType: e.target.value }))}
-                      placeholder="Enter payor type"
-                      className="mt-1"
-                      data-testid="input-payor-type"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t">
-                <h3 className="text-sm font-semibold mb-4">Financial Details</h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Allowed Amount</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={currentTaskData.allowedAmount || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, allowedAmount: e.target.value }))}
-                      placeholder="0.00"
-                      className="mt-1"
-                      data-testid="input-allowed-amount"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Gross Amount</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={currentTaskData.grossAmount || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, grossAmount: e.target.value }))}
-                      placeholder="0.00"
-                      className="mt-1"
-                      data-testid="input-gross-amount"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Payment</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={currentTaskData.payment || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, payment: e.target.value }))}
-                      placeholder="0.00"
-                      className="mt-1"
-                      data-testid="input-payment"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Total Balance</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={currentTaskData.totalBalance || ''}
-                      disabled
-                      className="mt-1 bg-muted"
-                      data-testid="input-total-balance"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Write-Offs</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={currentTaskData.writeOffs || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, writeOffs: e.target.value }))}
-                      placeholder="0.00"
-                      className="mt-1"
-                      data-testid="input-write-offs"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t">
-                <h3 className="text-sm font-semibold mb-4">Additional Information</h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Financial Class</label>
-                    <Input
-                      value={currentTaskData.financialClass || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, financialClass: e.target.value }))}
-                      placeholder="Enter financial class"
-                      className="mt-1"
-                      data-testid="input-financial-class"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">NRC Contract</label>
-                    <Input
-                      value={currentTaskData.nrcContract || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, nrcContract: e.target.value }))}
-                      placeholder="Enter NRC contract"
-                      className="mt-1"
-                      data-testid="input-nrc-contract"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Pfx</label>
-                    <Input
-                      value={currentTaskData.pfx || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, pfx: e.target.value }))}
-                      placeholder="Enter prefix"
-                      className="mt-1"
-                      data-testid="input-pfx"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Sfx</label>
-                    <Input
-                      value={currentTaskData.sfx || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, sfx: e.target.value }))}
-                      placeholder="Enter suffix"
-                      className="mt-1"
-                      data-testid="input-sfx"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Error File</label>
-                    <Input
-                      value={currentTaskData.errorFile || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, errorFile: e.target.value }))}
-                      placeholder="Enter error file"
-                      className="mt-1"
-                      data-testid="input-error-file"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Max Create Date</label>
-                    <Input
-                      type="date"
-                      value={currentTaskData.maxCreateDate || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, maxCreateDate: e.target.value }))}
-                      className="mt-1"
-                      data-testid="input-max-create-date"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Fixed Denial</label>
-                    <Input
-                      value={currentTaskData.fixedDenial || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, fixedDenial: e.target.value }))}
-                      placeholder="Enter fixed denial"
-                      className="mt-1"
-                      data-testid="input-fixed-denial"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Fixed Remark Code</label>
-                    <Input
-                      value={currentTaskData.fixedRemarkCode || ''}
-                      onChange={(e) => setLocalTaskChanges(prev => ({ ...prev, fixedRemarkCode: e.target.value }))}
-                      placeholder="Enter fixed remark code"
-                      className="mt-1"
-                      data-testid="input-fixed-remark-code"
-                    />
-                  </div>
-                </div>
               </div>
 
               <div>
