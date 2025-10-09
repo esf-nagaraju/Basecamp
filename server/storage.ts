@@ -18,6 +18,12 @@ import {
   type InsertCsvImportRow,
   type UserTenant,
   type InsertUserTenant,
+  type TeamAssignment,
+  type InsertTeamAssignment,
+  type DailyTarget,
+  type InsertDailyTarget,
+  type ProductivityMetric,
+  type InsertProductivityMetric,
   users,
   tenants,
   claims,
@@ -26,6 +32,9 @@ import {
   csvImports,
   csvImportRows,
   userTenants,
+  teamAssignments,
+  dailyTargets,
+  productivityMetrics,
   USER_ROLES,
 } from "@shared/schema";
 
@@ -77,6 +86,20 @@ export interface IStorage {
   bulkCreateCsvImportRows(rows: InsertCsvImportRow[]): Promise<void>;
   getCsvImportRows(importId: string, tenantId: string, limit?: number, offset?: number): Promise<CsvImportRow[]>;
   getCsvImportRowCount(importId: string, tenantId: string): Promise<number>;
+  
+  getTeamMembers(tenantId: string, filters?: TeamMemberFilters): Promise<TeamMemberWithDetails[]>;
+  getTeamAssignment(userId: string, tenantId: string): Promise<TeamAssignment | undefined>;
+  upsertTeamAssignment(assignment: InsertTeamAssignment): Promise<TeamAssignment>;
+  bulkAssignTeamMembers(userIds: string[], region: string | null, payer: string | null, tenantId: string, assignedBy: string): Promise<number>;
+  
+  getDailyTarget(userId: string, targetDate: string, tenantId: string): Promise<DailyTarget | undefined>;
+  getDailyTargets(tenantId: string, targetDate: string): Promise<DailyTarget[]>;
+  upsertDailyTarget(target: InsertDailyTarget): Promise<DailyTarget>;
+  bulkSetDailyTargets(userIds: string[], claimTarget: number, targetDate: string, tenantId: string, setBy: string, changeReason?: string): Promise<number>;
+  
+  getProductivityMetricsForDate(userId: string, metricDate: string, tenantId: string): Promise<ProductivityMetric | undefined>;
+  getTeamProductivityMetrics(tenantId: string, metricDate: string): Promise<ProductivityMetric[]>;
+  updateProductivityMetrics(userId: string, metricDate: string, tenantId: string, metrics: Partial<InsertProductivityMetric>): Promise<ProductivityMetric>;
 }
 
 export interface ClaimFilters {
@@ -172,6 +195,28 @@ export interface DailyMetricsSummary {
   activeUsers: number;
 }
 
+export interface TeamMemberFilters {
+  region?: string;
+  payer?: string;
+  status?: string;
+  search?: string;
+  performanceLevel?: 'high' | 'medium' | 'low';
+}
+
+export interface TeamMemberWithDetails {
+  userId: string;
+  employeeName: string;
+  employeeId: string | null;
+  email: string | null;
+  role: string;
+  region: string | null;
+  payer: string | null;
+  dailyClaimTarget: number;
+  claimsProcessedToday: number;
+  performancePercent: number;
+  status: string;
+}
+
 export class DbStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
@@ -241,7 +286,23 @@ export class DbStorage implements IStorage {
     }
     
     const tenantId = defaultTenant[0].id;
-    const role = userData.role || USER_ROLES.RCM_SPECIALIST;
+    // For new users, default to RCM_SPECIALIST. For existing users, role may be undefined to preserve existing value
+    const roleForInsert = userData.role || USER_ROLES.RCM_SPECIALIST;
+    
+    // Build update object - only include role if explicitly provided (not undefined)
+    const updateFields: any = {
+      email: userData.email,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      profileImageUrl: userData.profileImageUrl,
+      fullName: [userData.firstName, userData.lastName].filter(Boolean).join(' ') || userData.email || 'User',
+      updatedAt: new Date(),
+    };
+    
+    // Only update role if explicitly provided (preserves existing role when undefined)
+    if (userData.role !== undefined) {
+      updateFields.role = userData.role;
+    }
     
     const [user] = await db
       .insert(users)
@@ -254,18 +315,11 @@ export class DbStorage implements IStorage {
         profileImageUrl: userData.profileImageUrl,
         fullName: [userData.firstName, userData.lastName].filter(Boolean).join(' ') || userData.email || 'User',
         tenantId: tenantId,
-        role: role,
+        role: roleForInsert,
       })
       .onConflictDoUpdate({
         target: users.id,
-        set: {
-          email: userData.email,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          profileImageUrl: userData.profileImageUrl,
-          fullName: [userData.firstName, userData.lastName].filter(Boolean).join(' ') || userData.email || 'User',
-          updatedAt: new Date(),
-        },
+        set: updateFields,
       })
       .returning();
     return user;
@@ -1256,6 +1310,269 @@ export class DbStorage implements IStorage {
       .from(csvImportRows)
       .where(and(eq(csvImportRows.importId, importId), eq(csvImportRows.tenantId, tenantId)));
     return Number(result[0]?.count || 0);
+  }
+
+  async getTeamMembers(tenantId: string, filters: TeamMemberFilters = {}): Promise<TeamMemberWithDetails[]> {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const query = db
+      .select({
+        userId: users.id,
+        employeeName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+        employeeId: teamAssignments.employeeId,
+        email: users.email,
+        role: users.role,
+        region: teamAssignments.region,
+        payer: teamAssignments.payer,
+        dailyClaimTarget: sql<number>`COALESCE(${dailyTargets.claimTarget}, 0)`,
+        claimsProcessedToday: sql<number>`COALESCE(${productivityMetrics.claimsProcessedToday}, 0)`,
+        status: teamAssignments.status,
+      })
+      .from(users)
+      .leftJoin(teamAssignments, and(
+        eq(teamAssignments.userId, users.id),
+        eq(teamAssignments.tenantId, tenantId),
+        eq(teamAssignments.status, 'active')
+      ))
+      .leftJoin(dailyTargets, and(
+        eq(dailyTargets.userId, users.id),
+        eq(dailyTargets.tenantId, tenantId),
+        eq(dailyTargets.targetDate, today)
+      ))
+      .leftJoin(productivityMetrics, and(
+        eq(productivityMetrics.userId, users.id),
+        eq(productivityMetrics.tenantId, tenantId),
+        eq(productivityMetrics.metricDate, today)
+      ))
+      .where(eq(users.tenantId, tenantId));
+
+    const results = await query;
+    
+    return results.map(row => ({
+      userId: row.userId,
+      employeeName: row.employeeName,
+      employeeId: row.employeeId,
+      email: row.email,
+      role: row.role,
+      region: row.region,
+      payer: row.payer,
+      dailyClaimTarget: row.dailyClaimTarget,
+      claimsProcessedToday: row.claimsProcessedToday,
+      performancePercent: row.dailyClaimTarget > 0 
+        ? Math.round((row.claimsProcessedToday / row.dailyClaimTarget) * 100)
+        : 0,
+      status: row.status || 'active',
+    })).filter(member => {
+      if (filters.region && member.region !== filters.region) return false;
+      if (filters.payer && member.payer !== filters.payer) return false;
+      if (filters.status && member.status !== filters.status) return false;
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        const matchesSearch = 
+          member.employeeName.toLowerCase().includes(searchLower) ||
+          member.email?.toLowerCase().includes(searchLower) ||
+          member.employeeId?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+      if (filters.performanceLevel) {
+        const percent = member.performancePercent;
+        if (filters.performanceLevel === 'high' && percent < 100) return false;
+        if (filters.performanceLevel === 'medium' && (percent < 80 || percent >= 100)) return false;
+        if (filters.performanceLevel === 'low' && percent >= 80) return false;
+      }
+      return true;
+    });
+  }
+
+  async getTeamAssignment(userId: string, tenantId: string): Promise<TeamAssignment | undefined> {
+    const result = await db
+      .select()
+      .from(teamAssignments)
+      .where(and(
+        eq(teamAssignments.userId, userId),
+        eq(teamAssignments.tenantId, tenantId),
+        eq(teamAssignments.status, 'active')
+      ))
+      .limit(1);
+    return result[0];
+  }
+
+  async upsertTeamAssignment(assignment: InsertTeamAssignment): Promise<TeamAssignment> {
+    const existing = await this.getTeamAssignment(assignment.userId, assignment.tenantId);
+    
+    if (existing) {
+      const result = await db
+        .update(teamAssignments)
+        .set({
+          region: assignment.region,
+          payer: assignment.payer,
+          employeeId: assignment.employeeId,
+          assignedBy: assignment.assignedBy,
+          assignedAt: sql`now()`,
+          updatedAt: sql`now()`,
+        })
+        .where(eq(teamAssignments.id, existing.id))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db
+        .insert(teamAssignments)
+        .values(assignment)
+        .returning();
+      return result[0];
+    }
+  }
+
+  async bulkAssignTeamMembers(
+    userIds: string[], 
+    region: string | null, 
+    payer: string | null, 
+    tenantId: string, 
+    assignedBy: string
+  ): Promise<number> {
+    if (userIds.length === 0) return 0;
+
+    let count = 0;
+    for (const userId of userIds) {
+      await this.upsertTeamAssignment({
+        userId,
+        tenantId,
+        region,
+        payer,
+        assignedBy,
+        status: 'active',
+      });
+      count++;
+    }
+    return count;
+  }
+
+  async getDailyTarget(userId: string, targetDate: string, tenantId: string): Promise<DailyTarget | undefined> {
+    const result = await db
+      .select()
+      .from(dailyTargets)
+      .where(and(
+        eq(dailyTargets.userId, userId),
+        eq(dailyTargets.targetDate, targetDate),
+        eq(dailyTargets.tenantId, tenantId)
+      ))
+      .limit(1);
+    return result[0];
+  }
+
+  async getDailyTargets(tenantId: string, targetDate: string): Promise<DailyTarget[]> {
+    return await db
+      .select()
+      .from(dailyTargets)
+      .where(and(
+        eq(dailyTargets.tenantId, tenantId),
+        eq(dailyTargets.targetDate, targetDate)
+      ));
+  }
+
+  async upsertDailyTarget(target: InsertDailyTarget): Promise<DailyTarget> {
+    const existing = await this.getDailyTarget(target.userId, target.targetDate, target.tenantId);
+    
+    if (existing) {
+      const result = await db
+        .update(dailyTargets)
+        .set({
+          claimTarget: target.claimTarget,
+          previousTarget: existing.claimTarget,
+          changeReason: target.changeReason,
+          setBy: target.setBy,
+          setAt: sql`now()`,
+        })
+        .where(eq(dailyTargets.id, existing.id))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db
+        .insert(dailyTargets)
+        .values(target)
+        .returning();
+      return result[0];
+    }
+  }
+
+  async bulkSetDailyTargets(
+    userIds: string[], 
+    claimTarget: number, 
+    targetDate: string, 
+    tenantId: string, 
+    setBy: string,
+    changeReason?: string
+  ): Promise<number> {
+    if (userIds.length === 0) return 0;
+
+    let count = 0;
+    for (const userId of userIds) {
+      await this.upsertDailyTarget({
+        userId,
+        tenantId,
+        targetDate,
+        claimTarget,
+        setBy,
+        changeReason,
+      });
+      count++;
+    }
+    return count;
+  }
+
+  async getProductivityMetricsForDate(userId: string, metricDate: string, tenantId: string): Promise<ProductivityMetric | undefined> {
+    const result = await db
+      .select()
+      .from(productivityMetrics)
+      .where(and(
+        eq(productivityMetrics.userId, userId),
+        eq(productivityMetrics.metricDate, metricDate),
+        eq(productivityMetrics.tenantId, tenantId)
+      ))
+      .limit(1);
+    return result[0];
+  }
+
+  async getTeamProductivityMetrics(tenantId: string, metricDate: string): Promise<ProductivityMetric[]> {
+    return await db
+      .select()
+      .from(productivityMetrics)
+      .where(and(
+        eq(productivityMetrics.tenantId, tenantId),
+        eq(productivityMetrics.metricDate, metricDate)
+      ));
+  }
+
+  async updateProductivityMetrics(
+    userId: string, 
+    metricDate: string, 
+    tenantId: string, 
+    metrics: Partial<InsertProductivityMetric>
+  ): Promise<ProductivityMetric> {
+    const existing = await this.getProductivityMetricsForDate(userId, metricDate, tenantId);
+    
+    if (existing) {
+      const result = await db
+        .update(productivityMetrics)
+        .set({
+          ...metrics,
+          lastUpdated: sql`now()`,
+        })
+        .where(eq(productivityMetrics.id, existing.id))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db
+        .insert(productivityMetrics)
+        .values({
+          userId,
+          tenantId,
+          metricDate,
+          ...metrics,
+        })
+        .returning();
+      return result[0];
+    }
   }
 }
 

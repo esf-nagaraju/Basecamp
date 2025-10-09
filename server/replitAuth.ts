@@ -58,13 +58,52 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
+  console.log('[OIDC Auth] Received claims:', { 
+    sub: claims["sub"], 
+    email: claims["email"],
+    rawRole: claims["role"],
+    firstName: claims["first_name"],
+    lastName: claims["last_name"]
+  });
+  
+  // Check if user exists and has an existing role
+  const existingUser = await storage.getUser(claims["sub"]);
+  
+  // Normalize role to match USER_ROLES constants
+  let normalizedRole = claims["role"];
+  
+  if (normalizedRole) {
+    const roleMap: Record<string, string> = {
+      'manager': 'manager',
+      'Manager': 'manager',
+      'system_administrator': 'system_administrator',
+      'System Administrator': 'system_administrator',
+      'rcm_specialist': 'rcm_specialist',
+      'RCM Specialist': 'rcm_specialist',
+      'client_user': 'client_user',
+      'Client User': 'client_user',
+      'auditor': 'auditor',
+      'Auditor': 'auditor',
+    };
+    normalizedRole = roleMap[normalizedRole] || normalizedRole;
+    console.log('[OIDC Auth] Normalized role from claim:', normalizedRole);
+  } else if (existingUser && existingUser.role !== 'rcm_specialist') {
+    // Preserve existing non-default role when OIDC doesn't provide role claim
+    normalizedRole = existingUser.role;
+    console.log('[OIDC Auth] No role in claims, preserving existing role:', normalizedRole);
+  } else {
+    // Default to rcm_specialist for new users or existing rcm_specialists
+    normalizedRole = undefined; // Will default in storage layer
+    console.log('[OIDC Auth] No role in claims, will default to RCM_SPECIALIST');
+  }
+  
   await storage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
-    role: claims["role"],
+    role: normalizedRole,
   });
 }
 

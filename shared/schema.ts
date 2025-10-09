@@ -283,6 +283,89 @@ export const insertCsvImportRowSchema = createInsertSchema(csvImportRows).omit({
   createdAt: true,
 });
 
+export const teamAssignments = pgTable("team_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  
+  region: text("region"),
+  payer: text("payer"),
+  employeeId: text("employee_id"),
+  
+  assignedBy: varchar("assigned_by").references(() => users.id),
+  assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+  
+  status: text("status").notNull().default("active"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  tenantIdx: index("team_assignments_tenant_idx").on(table.tenantId),
+  userIdx: index("team_assignments_user_idx").on(table.userId),
+  regionIdx: index("team_assignments_region_idx").on(table.region),
+  payerIdx: index("team_assignments_payer_idx").on(table.payer),
+}));
+
+export const dailyTargets = pgTable("daily_targets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  
+  targetDate: text("target_date").notNull(),
+  claimTarget: integer("claim_target").notNull().default(0),
+  
+  previousTarget: integer("previous_target"),
+  changeReason: text("change_reason"),
+  
+  setBy: varchar("set_by").references(() => users.id),
+  setAt: timestamp("set_at").defaultNow().notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  tenantIdx: index("daily_targets_tenant_idx").on(table.tenantId),
+  userDateIdx: index("daily_targets_user_date_idx").on(table.userId, table.targetDate),
+}));
+
+export const productivityMetrics = pgTable("productivity_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  
+  metricDate: text("metric_date").notNull(),
+  
+  claimsProcessedToday: integer("claims_processed_today").default(0),
+  claimsPending: integer("claims_pending").default(0),
+  avgHandlingTimeMinutes: decimal("avg_handling_time_minutes", { precision: 10, scale: 2 }),
+  accuracyRate: decimal("accuracy_rate", { precision: 5, scale: 2 }),
+  
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  tenantIdx: index("productivity_metrics_tenant_idx").on(table.tenantId),
+  userDateIdx: index("productivity_metrics_user_date_idx").on(table.userId, table.metricDate),
+  lastUpdatedIdx: index("productivity_metrics_last_updated_idx").on(table.lastUpdated),
+}));
+
+export const insertTeamAssignmentSchema = createInsertSchema(teamAssignments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  assignedAt: true,
+});
+
+export const insertDailyTargetSchema = createInsertSchema(dailyTargets).omit({
+  id: true,
+  createdAt: true,
+  setAt: true,
+});
+
+export const insertProductivityMetricSchema = createInsertSchema(productivityMetrics).omit({
+  id: true,
+  createdAt: true,
+  lastUpdated: true,
+});
+
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type Tenant = typeof tenants.$inferSelect;
 
@@ -307,3 +390,12 @@ export type CsvImport = typeof csvImports.$inferSelect;
 
 export type InsertCsvImportRow = z.infer<typeof insertCsvImportRowSchema>;
 export type CsvImportRow = typeof csvImportRows.$inferSelect;
+
+export type InsertTeamAssignment = z.infer<typeof insertTeamAssignmentSchema>;
+export type TeamAssignment = typeof teamAssignments.$inferSelect;
+
+export type InsertDailyTarget = z.infer<typeof insertDailyTargetSchema>;
+export type DailyTarget = typeof dailyTargets.$inferSelect;
+
+export type InsertProductivityMetric = z.infer<typeof insertProductivityMetricSchema>;
+export type ProductivityMetric = typeof productivityMetrics.$inferSelect;

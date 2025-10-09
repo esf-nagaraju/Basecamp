@@ -43,20 +43,41 @@ Preferred communication style: Simple, everyday language.
 4.  **Tasks Table:** Workflow task management linked to claims, with user assignment, priority, and status.
 5.  **Activity Logs Table:** Audit trail for actions, user attribution, and JSONB details.
 6.  **Sessions Table:** PostgreSQL-backed authentication sessions with TTL-based expiration.
+7.  **Team Assignments Table:** Region and payer assignments for team members with employee IDs.
+8.  **Daily Targets Table:** Daily claim processing targets with historical tracking and change reasons.
+9.  **Productivity Metrics Table:** Real-time productivity tracking including claims processed, pending, handling time, and accuracy rate.
 
 **Data Validation:** Utilizes Zod schemas generated from Drizzle definitions for type-safe data models and API request validation.
 
 ### UI/UX Decisions
 - **Productivity Analytics:** Implemented comprehensive historical productivity tracking with date range filtering, trend visualization, summary metrics, and a dual-view team performance table. Includes skeleton loaders, error handling, and role-based access for Managers and System Administrators.
-- **Navigation:** Simplified sidebar navigation by removing unused items and retaining core elements (Dashboard, My Worklist, Analytics, Accounts Receivable, Productivity, User Management, Settings).
+- **Team Productivity Management:** A dedicated page at `/team-productivity` for Managers and System Administrators to:
+  - View team overview metrics (total members, avg performance, high performers, claims processed)
+  - Manage region/payer assignments with bulk operations
+  - Set and track daily claim targets with change history
+  - Monitor real-time productivity with performance badges (High ≥100%, Medium 80-99%, Low <80%)
+  - Search and filter team members by name, employee ID, or email
+  - Multi-select team members for bulk assignment and target setting operations
+- **Navigation:** Simplified sidebar navigation with role-based menu items including Team Productivity for Managers/Admins.
 - **Work Group Assignment & Filtering:** Introduced a 3-dimensional filtering system (Line of Business, Criteria, Team) on the Task Management page with multi-select popovers, query parameter persistence, and real-time updates. Claim Detail Modal updated for single-select Work Group assignment.
 - **Team Management:** A dedicated page at `/team-management` for System Administrators to view and manage users within their tenant, including role editing with client-side and server-side access control.
 
 ### Technical Implementations
 - **Health Check Endpoints:** Added `/health` and `/api/health` for deployment monitoring, returning 200 OK with `{"status": "ok"}`.
-- **Backend API Support:** New APIs for productivity data (`/api/productivity/summary`, `/api/productivity/historical`), work group assignment (`PATCH /api/claims/:id`), and filtered task retrieval (`GET /api/tasks`).
-- **Database Schema Updates:** Added `line_of_business`, `criteria`, and `team` columns to the Claims table for Work Group assignment.
-- **Security:** Multi-layer authorization (client-side guard + server-side validation), tenant isolation, and persistent role changes.
+- **Backend API Support:** 
+  - Productivity data: `/api/productivity/summary`, `/api/productivity/historical`
+  - Work group assignment: `PATCH /api/claims/:id`
+  - Filtered task retrieval: `GET /api/tasks`
+  - Team productivity management: 
+    - `GET /api/team/members` - Fetch team members with assignments, targets, and metrics
+    - `POST /api/team/assign` - Bulk assign region/payer to team members
+    - `GET /api/team/targets` - Get daily targets for a date
+    - `POST /api/team/targets` - Set daily targets for team members
+    - `GET /api/team/metrics` - Get productivity metrics for a date
+- **Database Schema Updates:** 
+  - Added `line_of_business`, `criteria`, and `team` columns to the Claims table for Work Group assignment
+  - Created `team_assignments`, `daily_targets`, and `productivity_metrics` tables for team productivity management
+- **Security:** Multi-layer authorization (client-side guard + server-side validation), tenant isolation, persistent role changes, and OIDC role claim updates on user login.
 
 ## External Dependencies
 

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertClaimSchema, insertTaskSchema, insertActivityLogSchema } from "@shared/schema";
+import { insertClaimSchema, insertTaskSchema, insertActivityLogSchema, USER_ROLES } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import Papa from "papaparse";
@@ -811,6 +811,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching productivity summary:", error);
       res.status(500).json({ message: "Failed to fetch productivity summary" });
+    }
+  });
+
+  app.get('/api/team/members', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId, userId } = await getUserContext(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR)) {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      const filters = {
+        region: req.query.region as string | undefined,
+        payer: req.query.payer as string | undefined,
+        status: req.query.status as string | undefined,
+        search: req.query.search as string | undefined,
+        performanceLevel: req.query.performanceLevel as 'high' | 'medium' | 'low' | undefined,
+      };
+
+      const members = await storage.getTeamMembers(tenantId, filters);
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      res.status(500).json({ message: "Failed to fetch team members" });
+    }
+  });
+
+  app.post('/api/team/assign', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId, userId } = await getUserContext(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR)) {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      const { userIds, region, payer } = req.body;
+
+      if (!Array.isArray(userIds) || userIds.length === 0) {
+        return res.status(400).json({ message: "userIds must be a non-empty array" });
+      }
+
+      const count = await storage.bulkAssignTeamMembers(
+        userIds,
+        region || null,
+        payer || null,
+        tenantId,
+        userId
+      );
+
+      res.json({ count, message: `${count} team member(s) assigned successfully` });
+    } catch (error) {
+      console.error("Error assigning team members:", error);
+      res.status(500).json({ message: "Failed to assign team members" });
+    }
+  });
+
+  app.get('/api/team/targets', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId, userId } = await getUserContext(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR)) {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      const targetDate = req.query.date as string || new Date().toISOString().split('T')[0];
+      const targets = await storage.getDailyTargets(tenantId, targetDate);
+      
+      res.json(targets);
+    } catch (error) {
+      console.error("Error fetching daily targets:", error);
+      res.status(500).json({ message: "Failed to fetch daily targets" });
+    }
+  });
+
+  app.post('/api/team/targets', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId, userId } = await getUserContext(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR)) {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      const { userIds, claimTarget, targetDate, changeReason } = req.body;
+
+      if (!Array.isArray(userIds) || userIds.length === 0) {
+        return res.status(400).json({ message: "userIds must be a non-empty array" });
+      }
+
+      if (typeof claimTarget !== 'number' || claimTarget < 0) {
+        return res.status(400).json({ message: "claimTarget must be a non-negative number" });
+      }
+
+      const date = targetDate || new Date().toISOString().split('T')[0];
+
+      const count = await storage.bulkSetDailyTargets(
+        userIds,
+        claimTarget,
+        date,
+        tenantId,
+        userId,
+        changeReason
+      );
+
+      res.json({ count, message: `Daily targets set for ${count} team member(s)` });
+    } catch (error) {
+      console.error("Error setting daily targets:", error);
+      res.status(500).json({ message: "Failed to set daily targets" });
+    }
+  });
+
+  app.get('/api/team/metrics', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId, userId } = await getUserContext(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR)) {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      const metricDate = req.query.date as string || new Date().toISOString().split('T')[0];
+      const metrics = await storage.getTeamProductivityMetrics(tenantId, metricDate);
+      
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching team metrics:", error);
+      res.status(500).json({ message: "Failed to fetch team metrics" });
     }
   });
 

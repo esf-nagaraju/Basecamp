@@ -8,6 +8,7 @@ import {
   Upload,
   TrendingUp,
   UserCog,
+  Users,
 } from "lucide-react";
 import {
   Sidebar,
@@ -56,6 +57,12 @@ const menuItems = [
     title: "Productivity",
     url: "/productivity",
     icon: TrendingUp,
+    roles: [USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
+  },
+  {
+    title: "Team Productivity",
+    url: "/team-productivity",
+    icon: Users,
     roles: [USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
   },
   {
