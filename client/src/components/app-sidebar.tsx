@@ -143,7 +143,7 @@ export function AppSidebar() {
             <ClipboardList className="h-6 w-6" />
           </div>
           <div className="group-data-[collapsible=icon]:hidden">
-            <h2 className="text-lg font-semibold">ClaimFlowPro</h2>
+            <h2 className="text-lg font-semibold">Basecamp</h2>
             <p className="text-xs text-muted-foreground">AR Management</p>
           </div>
         </div>

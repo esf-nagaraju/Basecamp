@@ -1,9 +1,9 @@
-# ClaimFlowPro Design Guidelines
+# Basecamp Design Guidelines
 
 ## Design Approach
 
 **Selected Approach**: Design System - Microsoft Fluent Design  
-**Justification**: ClaimFlowPro is a data-heavy, enterprise healthcare productivity tool requiring optimal information density, clear hierarchy, and professional aesthetics. Fluent Design excels at complex data interfaces while maintaining clarity and accessibility.
+**Justification**: Basecamp is a data-heavy, enterprise healthcare productivity tool requiring optimal information density, clear hierarchy, and professional aesthetics. Fluent Design excels at complex data interfaces while maintaining clarity and accessibility.
 
 **Key Design Principles**:
 1. **Information Clarity First**: Dense data must be scannable and actionable

@@ -17,7 +17,7 @@ export default function Landing() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-lg">
                 <ClipboardList className="h-6 w-6" />
               </div>
-              <span className="text-xl font-bold text-slate-900 dark:text-white">ClaimFlowPro</span>
+              <span className="text-xl font-bold text-slate-900 dark:text-white">Basecamp</span>
             </div>
 
             {/* Login form area */}
@@ -51,7 +51,7 @@ export default function Landing() {
 
             {/* Footer */}
             <div className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
-              © 2025 ClaimFlowPro. All rights reserved.
+              © 2025 Basecamp. All rights reserved.
             </div>
           </div>
 

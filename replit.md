@@ -1,8 +1,8 @@
-# ClaimFlowPro - Healthcare AR Management System
+# Basecamp - Healthcare AR Management System
 
 ## Overview
 
-ClaimFlowPro is a multi-tenant healthcare accounts receivable (AR) management system designed for medical claims processing. The application enables healthcare organizations to manage claims workflows, track denials, monitor productivity metrics, and automate task prioritization. Built for enterprise use, it supports role-based access control with 5 distinct roles (RCM Specialist, Manager, System Administrator, Client User, Auditor) and provides comprehensive financial intelligence for medical billing operations.
+Basecamp is a multi-tenant healthcare accounts receivable (AR) management system designed for medical claims processing. The application enables healthcare organizations to manage claims workflows, track denials, monitor productivity metrics, and automate task prioritization. Built for enterprise use, it supports role-based access control with 5 distinct roles (RCM Specialist, Manager, System Administrator, Client User, Auditor) and provides comprehensive financial intelligence for medical billing operations.
 
 ## Recent Changes
 
