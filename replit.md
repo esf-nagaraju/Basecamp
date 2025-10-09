@@ -6,30 +6,37 @@ ClaimFlowPro is a multi-tenant healthcare accounts receivable (AR) management sy
 
 ## Recent Changes
 
-### Work Group Assignment Feature (October 2025)
+### Work Group Assignment & Filtering Feature (October 2025)
 - **3-Dimensional Filtering System**: Implemented multi-select Work Group filters on Task Management page
   - Three independent filter dimensions: Line of Business (12 options), Criteria (12 options), Team (5 teams)
   - Popover-based multi-select controls with checkbox selection and search functionality
   - Simultaneous filtering across all dimensions for precise task isolation
   - Real-time task table updates when filters change (5s auto-refresh)
   - Filter state persisted in query parameters for consistent results
+  - OR logic within each dimension (e.g., lineOfBusiness IN ('External', 'Internal'))
+  - AND logic across dimensions (e.g., lineOfBusiness=External AND criteria=CPR+)
 
 - **Work Group Assignment UI**: Added Work Group fields to Claim Detail Modal
   - Line of Business, Criteria, and Team dropdowns in Claim Details section
   - Single-select controls for assigning Work Groups to individual claims
-  - Values persist on save and automatically update filters
+  - Values persist on save and automatically update task filters
   - Empty state ("None") option for unassigned claims
+  - Save routes through claim update endpoint for proper persistence
 
 - **Database Schema**: Added Work Group columns to Claims table
   - `line_of_business` (text): Categorizes claim by business line (DME, HME, Pharmacy, etc.)
   - `criteria` (text): Categorizes by processing criteria (CPR+, Silent Payors, Credit Balance, etc.)
   - `team` (text): Assigns claim to specific team (Acuserve, Accurio, Lincare, TP India, TP Manila)
   - All nullable to support gradual migration of existing claims
+  - Included in task detail queries (getTaskWithDetails, getTasksWithDetails) for UI display
 
 - **Backend API Updates**:
-  - `PATCH /api/claims/:id`: Now accepts lineOfBusiness, criteria, and team fields
-  - `GET /api/tasks`: Supports multi-value filtering via array parameters (?lineOfBusiness=DME&lineOfBusiness=HME)
+  - `PATCH /api/claims/:id`: Accepts lineOfBusiness, criteria, and team fields for Work Group assignment
+  - `GET /api/tasks`: Supports multi-value filtering via array query parameters (?lineOfBusiness=DME&lineOfBusiness=HME)
+  - Route handler normalizes query params to arrays for consistent processing
+  - Storage layer uses Drizzle's `inArray` operator for efficient multi-value filtering
   - Tenant isolation enforced on all Work Group operations
+  - Work Group fields loaded in task detail responses for modal display
 
 ### Team Management Feature (October 2025)
 - **User Management UI**: Added comprehensive Team Management page at `/team-management` for System Administrators

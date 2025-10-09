@@ -100,6 +100,9 @@ export interface TaskFilters {
   priority?: string;
   client?: string;
   search?: string;
+  lineOfBusiness?: string | string[];
+  criteria?: string | string[];
+  team?: string | string[];
   limit?: number;
   offset?: number;
 }
@@ -635,6 +638,21 @@ export class DbStorage implements IStorage {
           like(claims.payorName, `%${filters.search}%`)
         )!
       );
+    }
+
+    if (filters.lineOfBusiness && filters.lineOfBusiness.length > 0) {
+      const values = Array.isArray(filters.lineOfBusiness) ? filters.lineOfBusiness : [filters.lineOfBusiness];
+      conditions.push(inArray(claims.lineOfBusiness, values));
+    }
+
+    if (filters.criteria && filters.criteria.length > 0) {
+      const values = Array.isArray(filters.criteria) ? filters.criteria : [filters.criteria];
+      conditions.push(inArray(claims.criteria, values));
+    }
+
+    if (filters.team && filters.team.length > 0) {
+      const values = Array.isArray(filters.team) ? filters.team : [filters.team];
+      conditions.push(inArray(claims.team, values));
     }
 
     const countResult = await db

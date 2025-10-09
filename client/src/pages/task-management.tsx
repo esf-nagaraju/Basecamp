@@ -429,10 +429,6 @@ export default function TaskManagement() {
   const handleSaveTask = async () => {
     if (!taskDetail) return;
     
-    console.log('=== SAVE TASK DEBUG ===');
-    console.log('localTaskChanges:', localTaskChanges);
-    console.log('currentTaskData:', currentTaskData);
-    
     if (Object.keys(localTaskChanges).length === 0) {
       toast({
         title: "No changes",
@@ -459,9 +455,6 @@ export default function TaskManagement() {
         claimUpdates[key] = value;
       }
     }
-    
-    console.log('taskUpdates:', taskUpdates);
-    console.log('claimUpdates:', claimUpdates);
     
     if (Object.keys(taskUpdates).length > 0) {
       updateTaskMutation.mutate(taskUpdates);
