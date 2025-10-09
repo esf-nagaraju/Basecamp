@@ -67,6 +67,7 @@ Preferred communication style: Simple, everyday language.
   - Relabeled "Accurio Action/Status" to "Action/Status" for clarity
   - Reorganized Resolution fields (Resolution Category, Root Cause Category, Root Cause Detail, Resolution/Action Taken) to appear directly above Notes for improved workflow
   - Made all database-driven fields read-only in Claim Details, Provider Information, Payor Information, Financial Details, and Additional Information sections to prevent unintended data modification
+  - Updated AR Tasks table view to display Risk Score (1-10) with color-coded badges: High risk (8-10, red), Medium risk (4-7, default), Low risk (1-3, secondary)
 
 ### Technical Implementations
 - **Health Check Endpoints:** Added `/health` and `/api/health` for deployment monitoring, returning 200 OK with `{"status": "ok"}`.

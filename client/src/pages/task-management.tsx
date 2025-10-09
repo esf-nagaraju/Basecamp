@@ -408,6 +408,14 @@ export default function TaskManagement() {
   };
 
   const getPriorityBadgeVariant = (priority: string) => {
+    const numericPriority = parseInt(priority);
+    
+    if (!isNaN(numericPriority)) {
+      if (numericPriority >= 8) return 'destructive';
+      if (numericPriority >= 4) return 'default';
+      return 'secondary';
+    }
+    
     switch (priority.toLowerCase()) {
       case 'high': return 'destructive';
       case 'medium': return 'default';
@@ -727,7 +735,7 @@ export default function TaskManagement() {
                     />
                   </TableHead>
                   <TableHead>Claim Number</TableHead>
-                  <TableHead>Priority</TableHead>
+                  <TableHead>Risk Score</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Payor</TableHead>
                   <TableHead>Assigned To</TableHead>
