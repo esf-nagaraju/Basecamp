@@ -61,6 +61,12 @@ Preferred communication style: Simple, everyday language.
 - **Navigation:** Simplified sidebar navigation with role-based menu items including Team Productivity for Managers/Admins.
 - **Work Group Assignment & Filtering:** Introduced a 3-dimensional filtering system (Line of Business, Criteria, Team) on the Task Management page with multi-select popovers, query parameter persistence, and real-time updates. Claim Detail Modal updated for single-select Work Group assignment.
 - **Team Management:** A dedicated page at `/team-management` for System Administrators to view and manage users within their tenant, including role editing with client-side and server-side access control.
+- **AR Tasks Modal Redesign:**
+  - Removed Progress field (slider and input) from the interface
+  - Changed Priority to Risk Score with discrete values 1-10 for clearer risk assessment
+  - Relabeled "Accurio Action/Status" to "Action/Status" for clarity
+  - Reorganized Resolution fields (Resolution Category, Root Cause Category, Root Cause Detail, Resolution/Action Taken) to appear directly above Notes for improved workflow
+  - Made all database-driven fields read-only in Claim Details, Provider Information, Payor Information, Financial Details, and Additional Information sections to prevent unintended data modification
 
 ### Technical Implementations
 - **Health Check Endpoints:** Added `/health` and `/api/health` for deployment monitoring, returning 200 OK with `{"status": "ok"}`.
