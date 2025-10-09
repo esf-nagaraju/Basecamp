@@ -77,7 +77,14 @@ Preferred communication style: Simple, everyday language.
 - **Database Schema Updates:** 
   - Added `line_of_business`, `criteria`, and `team` columns to the Claims table for Work Group assignment
   - Created `team_assignments`, `daily_targets`, and `productivity_metrics` tables for team productivity management
-- **Security:** Multi-layer authorization (client-side guard + server-side validation), tenant isolation, persistent role changes, and OIDC role claim updates on user login.
+- **Security & Authentication:** 
+  - Multi-layer authorization (client-side guard + server-side validation)
+  - Tenant isolation with row-level security
+  - **Role Persistence Fix:** Auth pipeline now preserves elevated roles (Manager, System Administrator) when OIDC claims don't include role field:
+    - `replitAuth.ts` checks for existing users with non-default roles and preserves them when role claim is missing
+    - `storage.ts upsertUser()` only updates role field when explicitly provided (undefined = preserve existing)
+    - New users default to RCM Specialist if no role specified
+    - Prevents unintended role downgrade on login when OIDC provider doesn't send custom role claims
 
 ## External Dependencies
 
