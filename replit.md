@@ -6,6 +6,13 @@ Basecamp is a multi-tenant healthcare accounts receivable (AR) management system
 
 ## Recent Changes
 
+### Navigation Menu Cleanup (October 2025)
+- **Simplified Navigation**: Removed unused menu items from sidebar to streamline the interface
+  - Removed "Team Management" menu item (was at /team route)
+  - Removed "Claims" menu item (was at /claims route)
+  - Removed "Denials" menu item (was at /denials route)
+  - Retained core navigation: Dashboard, My Worklist, Analytics, Accounts Receivable, Productivity, User Management, Settings
+
 ### Deployment Health Check Fix (October 2025)
 - **Health Check Endpoints**: Added dedicated health check endpoints for deployment monitoring
   - `/health`: Primary health check endpoint (responds before any middleware)

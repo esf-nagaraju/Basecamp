@@ -2,11 +2,8 @@ import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard,
   ClipboardList,
-  Users,
   BarChart3,
   Settings,
-  FileText,
-  AlertCircle,
   LogOut,
   Upload,
   TrendingUp,
@@ -44,28 +41,10 @@ const menuItems = [
     roles: [USER_ROLES.RCM_SPECIALIST],
   },
   {
-    title: "Team Management",
-    url: "/team",
-    icon: Users,
-    roles: [USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
-  },
-  {
     title: "Analytics",
     url: "/analytics",
     icon: BarChart3,
     roles: [USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR, USER_ROLES.CLIENT_USER, USER_ROLES.AUDITOR],
-  },
-  {
-    title: "Claims",
-    url: "/claims",
-    icon: FileText,
-    roles: [USER_ROLES.RCM_SPECIALIST, USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR, USER_ROLES.AUDITOR],
-  },
-  {
-    title: "Denials",
-    url: "/denials",
-    icon: AlertCircle,
-    roles: [USER_ROLES.RCM_SPECIALIST, USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
   },
   {
     title: "Accounts Receivable",
