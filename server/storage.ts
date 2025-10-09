@@ -67,6 +67,8 @@ export interface IStorage {
   getActivityLogs(claimId: string, tenantId: string): Promise<ActivityLog[]>;
   
   getProductivityMetrics(tenantId: string, userId?: string): Promise<ProductivityMetrics>;
+  getHistoricalProductivity(tenantId: string, startDate: Date, endDate: Date, userId?: string): Promise<DailyProductivityRecord[]>;
+  getDailyMetricsSummary(tenantId: string, startDate: Date, endDate: Date): Promise<DailyMetricsSummary[]>;
   
   createCsvImport(csvImport: InsertCsvImport): Promise<CsvImport>;
   updateCsvImport(id: string, tenantId: string, updates: Partial<Omit<CsvImport, 'id' | 'createdAt'>>): Promise<CsvImport | undefined>;
@@ -147,6 +149,27 @@ export interface ProductivityMetrics {
   avgHandleTime: number;
   touchesPerClaim: number;
   totalBalance: number;
+}
+
+export interface DailyProductivityRecord {
+  date: string;
+  userId: string;
+  userName: string;
+  role: string;
+  tasksCompleted: number;
+  claimsProcessed: number;
+  activitiesLogged: number;
+  hoursWorked: number;
+  revenueCollected: number;
+}
+
+export interface DailyMetricsSummary {
+  date: string;
+  totalTasks: number;
+  totalClaims: number;
+  totalActivities: number;
+  totalRevenue: number;
+  activeUsers: number;
 }
 
 export class DbStorage implements IStorage {
@@ -927,6 +950,253 @@ export class DbStorage implements IStorage {
       touchesPerClaim: totalClaims > 0 ? Math.round(activityCount / totalClaims * 10) / 10 : 0,
       totalBalance,
     };
+  }
+
+  async getHistoricalProductivity(
+    tenantId: string,
+    startDate: Date,
+    endDate: Date,
+    userId?: string
+  ): Promise<DailyProductivityRecord[]> {
+    const userConditions = [eq(users.tenantId, tenantId)];
+    if (userId) {
+      userConditions.push(eq(users.id, userId));
+    }
+
+    const tenantUsers = await db
+      .select()
+      .from(users)
+      .where(and(...userConditions));
+
+    const records: DailyProductivityRecord[] = [];
+
+    for (const user of tenantUsers) {
+      const tasksResult = await db
+        .select({
+          date: sql<string>`DATE(${tasks.completedAt})`,
+          count: sql<number>`count(*)`,
+          totalTime: sql<number>`COALESCE(SUM(${tasks.totalTimeSeconds}), 0)`,
+        })
+        .from(tasks)
+        .where(
+          and(
+            eq(tasks.tenantId, tenantId),
+            eq(tasks.assignedTo, user.id),
+            eq(tasks.status, 'completed'),
+            gte(tasks.completedAt, startDate),
+            lte(tasks.completedAt, endDate)
+          )
+        )
+        .groupBy(sql`DATE(${tasks.completedAt})`);
+
+      const activitiesResult = await db
+        .select({
+          date: sql<string>`DATE(${activityLogs.createdAt})`,
+          count: sql<number>`count(*)`,
+        })
+        .from(activityLogs)
+        .where(
+          and(
+            eq(activityLogs.tenantId, tenantId),
+            eq(activityLogs.userId, user.id),
+            gte(activityLogs.createdAt, startDate),
+            lte(activityLogs.createdAt, endDate)
+          )
+        )
+        .groupBy(sql`DATE(${activityLogs.createdAt})`);
+
+      const claimsResult = await db
+        .select({
+          date: sql<string>`DATE(${claims.updatedAt})`,
+          count: sql<number>`count(*)`,
+          revenue: sql<number>`COALESCE(SUM(CAST(${claims.balanceDue} AS DECIMAL)), 0)`,
+        })
+        .from(claims)
+        .where(
+          and(
+            eq(claims.tenantId, tenantId),
+            eq(claims.assignedTo, user.id),
+            gte(claims.updatedAt, startDate),
+            lte(claims.updatedAt, endDate),
+            inArray(claims.status, ['paid', 'partially_paid', 'closed'])
+          )
+        )
+        .groupBy(sql`DATE(${claims.updatedAt})`);
+
+      const dateMap = new Map<string, DailyProductivityRecord>();
+
+      tasksResult.forEach((row) => {
+        if (row.date) {
+          dateMap.set(row.date, {
+            date: row.date,
+            userId: user.id,
+            userName: user.fullName || user.email || 'Unknown',
+            role: user.role,
+            tasksCompleted: Number(row.count),
+            claimsProcessed: 0,
+            activitiesLogged: 0,
+            hoursWorked: Number(row.totalTime) / 3600,
+            revenueCollected: 0,
+          });
+        }
+      });
+
+      activitiesResult.forEach((row) => {
+        if (row.date) {
+          const existing = dateMap.get(row.date);
+          if (existing) {
+            existing.activitiesLogged = Number(row.count);
+          } else {
+            dateMap.set(row.date, {
+              date: row.date,
+              userId: user.id,
+              userName: user.fullName || user.email || 'Unknown',
+              role: user.role,
+              tasksCompleted: 0,
+              claimsProcessed: 0,
+              activitiesLogged: Number(row.count),
+              hoursWorked: 0,
+              revenueCollected: 0,
+            });
+          }
+        }
+      });
+
+      claimsResult.forEach((row) => {
+        if (row.date) {
+          const existing = dateMap.get(row.date);
+          if (existing) {
+            existing.claimsProcessed = Number(row.count);
+            existing.revenueCollected = Number(row.revenue);
+          } else {
+            dateMap.set(row.date, {
+              date: row.date,
+              userId: user.id,
+              userName: user.fullName || user.email || 'Unknown',
+              role: user.role,
+              tasksCompleted: 0,
+              claimsProcessed: Number(row.count),
+              activitiesLogged: 0,
+              hoursWorked: 0,
+              revenueCollected: Number(row.revenue),
+            });
+          }
+        }
+      });
+
+      records.push(...Array.from(dateMap.values()));
+    }
+
+    return records.sort((a, b) => b.date.localeCompare(a.date));
+  }
+
+  async getDailyMetricsSummary(
+    tenantId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<DailyMetricsSummary[]> {
+    const tasksResult = await db
+      .select({
+        date: sql<string>`DATE(${tasks.completedAt})`,
+        count: sql<number>`count(*)`,
+        users: sql<number>`count(DISTINCT ${tasks.assignedTo})`,
+      })
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.tenantId, tenantId),
+          eq(tasks.status, 'completed'),
+          gte(tasks.completedAt, startDate),
+          lte(tasks.completedAt, endDate)
+        )
+      )
+      .groupBy(sql`DATE(${tasks.completedAt})`);
+
+    const claimsResult = await db
+      .select({
+        date: sql<string>`DATE(${claims.updatedAt})`,
+        count: sql<number>`count(*)`,
+        revenue: sql<number>`COALESCE(SUM(CAST(${claims.balanceDue} AS DECIMAL)), 0)`,
+      })
+      .from(claims)
+      .where(
+        and(
+          eq(claims.tenantId, tenantId),
+          gte(claims.updatedAt, startDate),
+          lte(claims.updatedAt, endDate),
+          inArray(claims.status, ['paid', 'partially_paid', 'closed'])
+        )
+      )
+      .groupBy(sql`DATE(${claims.updatedAt})`);
+
+    const activitiesResult = await db
+      .select({
+        date: sql<string>`DATE(${activityLogs.createdAt})`,
+        count: sql<number>`count(*)`,
+      })
+      .from(activityLogs)
+      .where(
+        and(
+          eq(activityLogs.tenantId, tenantId),
+          gte(activityLogs.createdAt, startDate),
+          lte(activityLogs.createdAt, endDate)
+        )
+      )
+      .groupBy(sql`DATE(${activityLogs.createdAt})`);
+
+    const dateMap = new Map<string, DailyMetricsSummary>();
+
+    tasksResult.forEach((row) => {
+      if (row.date) {
+        dateMap.set(row.date, {
+          date: row.date,
+          totalTasks: Number(row.count),
+          totalClaims: 0,
+          totalActivities: 0,
+          totalRevenue: 0,
+          activeUsers: Number(row.users),
+        });
+      }
+    });
+
+    claimsResult.forEach((row) => {
+      if (row.date) {
+        const existing = dateMap.get(row.date);
+        if (existing) {
+          existing.totalClaims = Number(row.count);
+          existing.totalRevenue = Number(row.revenue);
+        } else {
+          dateMap.set(row.date, {
+            date: row.date,
+            totalTasks: 0,
+            totalClaims: Number(row.count),
+            totalActivities: 0,
+            totalRevenue: Number(row.revenue),
+            activeUsers: 0,
+          });
+        }
+      }
+    });
+
+    activitiesResult.forEach((row) => {
+      if (row.date) {
+        const existing = dateMap.get(row.date);
+        if (existing) {
+          existing.totalActivities = Number(row.count);
+        } else {
+          dateMap.set(row.date, {
+            date: row.date,
+            totalTasks: 0,
+            totalClaims: 0,
+            totalActivities: Number(row.count),
+            totalRevenue: 0,
+            activeUsers: 0,
+          });
+        }
+      }
+    });
+
+    return Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
   }
 
   async createCsvImport(csvImport: InsertCsvImport): Promise<CsvImport> {

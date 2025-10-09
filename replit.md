@@ -2,82 +2,7 @@
 
 ## Overview
 
-Basecamp is a multi-tenant healthcare accounts receivable (AR) management system designed for medical claims processing. The application enables healthcare organizations to manage claims workflows, track denials, monitor productivity metrics, and automate task prioritization. Built for enterprise use, it supports role-based access control with 5 distinct roles (RCM Specialist, Manager, System Administrator, Client User, Auditor) and provides comprehensive financial intelligence for medical billing operations.
-
-## Recent Changes
-
-### Navigation Menu Cleanup (October 2025)
-- **Simplified Navigation**: Removed unused menu items from sidebar to streamline the interface
-  - Removed "Team Management" menu item (was at /team route)
-  - Removed "Claims" menu item (was at /claims route)
-  - Removed "Denials" menu item (was at /denials route)
-  - Retained core navigation: Dashboard, My Worklist, Analytics, Accounts Receivable, Productivity, User Management, Settings
-
-### Deployment Health Check Fix (October 2025)
-- **Health Check Endpoints**: Added dedicated health check endpoints for deployment monitoring
-  - `/health`: Primary health check endpoint (responds before any middleware)
-  - `/api/health`: Alternative health check endpoint within API routes
-  - Both endpoints return immediate 200 OK with JSON response: `{"status": "ok", "timestamp": "..."}`
-  - No authentication required for health checks
-  - Ensures deployment platform can verify app health quickly
-
-- **Production Readiness**: Verified static file serving configuration
-  - Production mode serves from `dist/public` directory
-  - Root route properly serves React app HTML
-  - No expensive operations block startup or health checks
-
-### Work Group Assignment & Filtering Feature (October 2025)
-- **3-Dimensional Filtering System**: Implemented multi-select Work Group filters on Task Management page
-  - Three independent filter dimensions: Line of Business (12 options), Criteria (12 options), Team (5 teams)
-  - Popover-based multi-select controls with checkbox selection and search functionality
-  - Simultaneous filtering across all dimensions for precise task isolation
-  - Real-time task table updates when filters change (5s auto-refresh)
-  - Filter state persisted in query parameters for consistent results
-  - OR logic within each dimension (e.g., lineOfBusiness IN ('External', 'Internal'))
-  - AND logic across dimensions (e.g., lineOfBusiness=External AND criteria=CPR+)
-
-- **Work Group Assignment UI**: Added Work Group fields to Claim Detail Modal
-  - Line of Business, Criteria, and Team dropdowns in Claim Details section
-  - Single-select controls for assigning Work Groups to individual claims
-  - Values persist on save and automatically update task filters
-  - Empty state ("None") option for unassigned claims
-  - Save routes through claim update endpoint for proper persistence
-
-- **Database Schema**: Added Work Group columns to Claims table
-  - `line_of_business` (text): Categorizes claim by business line (DME, HME, Pharmacy, etc.)
-  - `criteria` (text): Categorizes by processing criteria (CPR+, Silent Payors, Credit Balance, etc.)
-  - `team` (text): Assigns claim to specific team (Acuserve, Accurio, Lincare, TP India, TP Manila)
-  - All nullable to support gradual migration of existing claims
-  - Included in task detail queries (getTaskWithDetails, getTasksWithDetails) for UI display
-
-- **Backend API Updates**:
-  - `PATCH /api/claims/:id`: Accepts lineOfBusiness, criteria, and team fields for Work Group assignment
-  - `GET /api/tasks`: Supports multi-value filtering via array query parameters (?lineOfBusiness=DME&lineOfBusiness=HME)
-  - Route handler normalizes query params to arrays for consistent processing
-  - Storage layer uses Drizzle's `inArray` operator for efficient multi-value filtering
-  - Tenant isolation enforced on all Work Group operations
-  - Work Group fields loaded in task detail responses for modal display
-
-### Team Management Feature (October 2025)
-- **User Management UI**: Added comprehensive Team Management page at `/team-management` for System Administrators
-  - Displays all users in current tenant with avatar, name, email, role, date added, and last active timestamp
-  - Users grouped into "Admin users" (System Administrators, Managers) and "Team members" (other roles)
-  - Role editing via dropdown dialog supporting all 5 roles
-  - Real-time UI updates after role changes
-  - Client-side access guard shows "Access Denied" for non-administrators
-
-- **Backend API Endpoints**:
-  - `GET /api/users`: Lists all tenant users (System Administrator only)
-  - `PATCH /api/users/:id/role`: Updates user role with tenant isolation validation
-  - Role-based access control enforced at API level (403 for unauthorized access)
-  - Tenant scoping prevents cross-tenant role manipulation
-
-- **Security Enhancements**:
-  - Multi-layer authorization: Client-side guard + server-side role validation
-  - Tenant isolation: Admins can only view/modify users within their own tenant
-  - Role persistence: Manual role changes now persist across login sessions
-
-- **Navigation**: Added "User Management" menu item in sidebar (UserCog icon) visible only to System Administrators
+Basecamp is a multi-tenant healthcare accounts receivable (AR) management system designed for medical claims processing. It enables healthcare organizations to manage claims workflows, track denials, monitor productivity, and automate task prioritization. Built for enterprise use, it supports role-based access control (RCM Specialist, Manager, System Administrator, Client User, Auditor) and provides financial intelligence for medical billing operations. The system aims to streamline operations and enhance financial performance for healthcare providers.
 
 ## User Preferences
 
@@ -87,162 +12,76 @@ Preferred communication style: Simple, everyday language.
 
 ### Frontend Architecture
 
-**Technology Stack:**
-- **Framework:** React 18 with TypeScript
-- **Routing:** Wouter (lightweight client-side routing)
-- **State Management:** TanStack React Query v5 for server state
-- **UI Framework:** shadcn/ui components built on Radix UI primitives
-- **Styling:** Tailwind CSS with custom design system based on Microsoft Fluent Design principles
+**Technology Stack:** React 18 (TypeScript), Wouter (routing), TanStack React Query v5 (server state), shadcn/ui (UI components), Tailwind CSS (styling).
 
-**Design System:**
-The application follows Microsoft Fluent Design guidelines optimized for data-heavy enterprise healthcare applications. Key design principles include:
-- Information density and scannability for claims data
-- Professional healthcare aesthetic with subtle elevation system
-- Dual theme support (light/dark mode) with healthcare-appropriate color palette
-- Role-based visual hierarchy for different user personas
+**Design System:** Adheres to Microsoft Fluent Design principles, optimized for data-heavy enterprise healthcare applications. Features include information density, professional aesthetic, a subtle elevation system, dual theme support (light/dark mode), and role-based visual hierarchy.
 
-**Component Architecture:**
-- Reusable UI components in `client/src/components/ui/` (buttons, cards, tables, forms)
-- Domain-specific components for claims management (ClaimsTable, MetricCard, StatusBadge, SlaIndicator)
-- Layout components (AppSidebar, ThemeProvider) for application shell
-- Component examples for development reference
+**Component Architecture:** Employs reusable UI components, domain-specific components for claims management (e.g., ClaimsTable, MetricCard), and layout components (e.g., AppSidebar).
 
-**State Management Approach:**
-- Server state managed via React Query with custom query client
-- Authentication state through `useAuth` hook
-- Theme state via Context API (ThemeProvider)
-- Form state using react-hook-form with zod validation
+**State Management Approach:** Server state via React Query; authentication state via `useAuth` hook; theme state via Context API; form state with react-hook-form and Zod validation.
 
 ### Backend Architecture
 
-**Technology Stack:**
-- **Runtime:** Node.js with TypeScript
-- **Framework:** Express.js
-- **ORM:** Drizzle ORM with Neon serverless PostgreSQL
-- **Session Management:** express-session with PostgreSQL storage (connect-pg-simple)
-- **Authentication:** OpenID Connect via Replit Auth with Passport.js
+**Technology Stack:** Node.js (TypeScript), Express.js, Drizzle ORM with Neon serverless PostgreSQL, express-session (session management), OpenID Connect via Replit Auth with Passport.js (authentication).
 
-**API Design:**
-- RESTful API endpoints under `/api` prefix
-- Authentication-protected routes using `isAuthenticated` middleware
-- Tenant isolation enforced at data access layer through context extraction
-- Response logging middleware for development monitoring
+**API Design:** RESTful API under `/api` with authentication, tenant isolation at the data access layer, and response logging.
 
-**Data Access Pattern:**
-- Storage abstraction layer (`server/storage.ts`) implementing `IStorage` interface
-- Centralized database operations with tenant-scoped queries
-- Bulk operations support for claims and tasks (batched at 1000 rows per batch)
-- CSV file upload for bulk claim ingestion (supports 60,000+ records)
-  - Transactional safety: Claims, tasks, and activity logs created atomically
-  - Tenant consistency validation enforced before import
-  - Automatic rollback on any failure prevents orphaned data
-- Bulk task assignment for high-volume operations (50,000+ daily tasks)
-  - Checkbox-based selection with Set data structure for O(1) lookups
-  - Bulk action toolbar with assignment dialog
-  - Single database query for mass updates with minimal payload (ID-only returning)
-  - Tenant-scoped filtering prevents cross-tenant assignment
-  - Activity log tracking for audit trail
-- Computed metrics aggregation (productivity, financial)
+**Data Access Pattern:** Features a storage abstraction layer, tenant-scoped queries, bulk operations for claims and tasks (including CSV upload with transactional safety), and bulk task assignment for high-volume operations. Computed metrics aggregation is also supported.
 
-**Background Processing:**
-- Task generator (`server/taskGenerator.ts`) for automated priority scoring
-- Priority calculation based on claim age, balance, denial codes, and payor type
-- SLA status computation for workflow tracking
+**Background Processing:** Includes a task generator for automated priority scoring based on claim age, balance, denial codes, and payor type, along with SLA status computation.
 
 ### Database Architecture
 
-**Database Technology:** PostgreSQL (Neon serverless)
+**Database Technology:** PostgreSQL (Neon serverless).
 
-**Multi-Tenancy:**
-- Tenant-scoped data model with `tenantId` foreign keys on all entities
-- Tenant settings stored as JSONB for flexible configuration
-- Row-level tenant isolation enforced in all queries
+**Multi-Tenancy:** Tenant-scoped data model using `tenantId` foreign keys and row-level isolation. Tenant settings are stored as JSONB.
 
 **Core Schema:**
+1.  **Tenants Table:** Organization-level configuration with JSONB settings.
+2.  **Users Table:** User authentication, profiles, and role-based access control (RCM Specialist, Manager, System Administrator, Client User, Auditor).
+3.  **Claims Table:** Medical claim records with patient, payor, financial, temporal, clinical, and workflow data.
+4.  **Tasks Table:** Workflow task management linked to claims, with user assignment, priority, and status.
+5.  **Activity Logs Table:** Audit trail for actions, user attribution, and JSONB details.
+6.  **Sessions Table:** PostgreSQL-backed authentication sessions with TTL-based expiration.
 
-1. **Tenants Table:** Organization-level configuration
-   - Settings stored as JSONB for extensibility
-   
-2. **Users Table:** User authentication and profile
-   - Support for both Replit Auth (via `replitId`) and username/password
-   - Role-based access control with 5 defined roles:
-     - **RCM Specialist** (`rcm_specialist`): Works assigned claim tasks, logs time, updates status/resolution, escalates issues
-     - **Manager** (`manager`): Oversees workload, handles escalations, reviews dashboards and targets
-     - **System Administrator** (`system_administrator`): Manages tenants, users, roles, branding, and access policies
-     - **Client User** (`client_user`): View-only access to their own tenant's dashboards and reports
-     - **Auditor** (`auditor`): Read-only access to immutable task histories and system logs
-   - Tenant association for data isolation
-   - Default role: `rcm_specialist` for new users
+**Data Validation:** Utilizes Zod schemas generated from Drizzle definitions for type-safe data models and API request validation.
 
-3. **Claims Table:** Medical claim records
-   - Patient demographics (name, DOB, customer ID)
-   - Payor information (name, code, type)
-   - Financial data (balance, list price, allowed amount)
-   - Temporal tracking (invoice date, age, service date)
-   - Clinical codes (HCPC, modifiers)
-   - Workflow state (status, SLA status, denial codes)
-   - Assignment and priority fields
-   - Indexed on tenant, status, and assignment for query performance
+### UI/UX Decisions
+- **Productivity Analytics:** Implemented comprehensive historical productivity tracking with date range filtering, trend visualization, summary metrics, and a dual-view team performance table. Includes skeleton loaders, error handling, and role-based access for Managers and System Administrators.
+- **Navigation:** Simplified sidebar navigation by removing unused items and retaining core elements (Dashboard, My Worklist, Analytics, Accounts Receivable, Productivity, User Management, Settings).
+- **Work Group Assignment & Filtering:** Introduced a 3-dimensional filtering system (Line of Business, Criteria, Team) on the Task Management page with multi-select popovers, query parameter persistence, and real-time updates. Claim Detail Modal updated for single-select Work Group assignment.
+- **Team Management:** A dedicated page at `/team-management` for System Administrators to view and manage users within their tenant, including role editing with client-side and server-side access control.
 
-4. **Tasks Table:** Workflow task management
-   - Claim association via foreign key
-   - User assignment with priority and due date
-   - Task type categorization
-   - Status tracking with completion timestamp
+### Technical Implementations
+- **Health Check Endpoints:** Added `/health` and `/api/health` for deployment monitoring, returning 200 OK with `{"status": "ok"}`.
+- **Backend API Support:** New APIs for productivity data (`/api/productivity/summary`, `/api/productivity/historical`), work group assignment (`PATCH /api/claims/:id`), and filtered task retrieval (`GET /api/tasks`).
+- **Database Schema Updates:** Added `line_of_business`, `criteria`, and `team` columns to the Claims table for Work Group assignment.
+- **Security:** Multi-layer authorization (client-side guard + server-side validation), tenant isolation, and persistent role changes.
 
-5. **Activity Logs Table:** Audit trail
-   - Action tracking for claims and tasks
-   - User attribution
-   - JSONB details for flexible event data
-   - Indexed by claim and tenant for history retrieval
-
-6. **Sessions Table:** Authentication sessions
-   - PostgreSQL-backed session storage
-   - TTL-based expiration indexing
-
-**Data Validation:**
-- Zod schemas generated from Drizzle definitions (drizzle-zod)
-- Insert schemas for API request validation
-- Type-safe data models shared between client and server
-
-### External Dependencies
+## External Dependencies
 
 **Authentication & Authorization:**
-- **Replit Auth:** OpenID Connect provider for SSO
-  - Configuration via environment variables (`ISSUER_URL`, `REPL_ID`)
-  - Session management with 7-day cookie TTL
-  - Token refresh mechanism implemented in Passport strategy
+- **Replit Auth:** OpenID Connect provider for SSO.
 
 **Database Services:**
-- **Neon PostgreSQL:** Serverless PostgreSQL database
-  - WebSocket-based connection pooling
-  - Connection string configured via `DATABASE_URL` environment variable
-  - Drizzle ORM for schema management and migrations
+- **Neon PostgreSQL:** Serverless PostgreSQL database.
 
 **Build & Development Tools:**
-- **Vite:** Frontend build tool and dev server
-  - HMR (Hot Module Replacement) for development
-  - Custom plugins for Replit integration (cartographer, dev banner, runtime error overlay)
-  - Middleware mode for Express integration in development
+- **Vite:** Frontend build tool and dev server.
 
 **UI Component Libraries:**
-- **Radix UI:** Headless component primitives (dialogs, dropdowns, tooltips, etc.)
-- **shadcn/ui:** Pre-built accessible components with Tailwind styling
-- **Lucide React:** Icon library
-- **react-day-picker:** Calendar/date picker component
-- **cmdk:** Command palette component
-- **vaul:** Drawer component (mobile-optimized)
+- **Radix UI:** Headless component primitives.
+- **shadcn/ui:** Pre-built accessible components.
+- **Lucide React:** Icon library.
+- **react-day-picker:** Calendar/date picker component.
+- **cmdk:** Command palette component.
+- **vaul:** Drawer component.
 
 **Data Visualization:**
-- **Recharts:** Charting library for analytics dashboards
+- **Recharts:** Charting library.
 
 **Utility Libraries:**
-- **date-fns:** Date manipulation and formatting
-- **zod:** Runtime type validation
-- **class-variance-authority:** Type-safe component variants
-- **nanoid:** Unique ID generation
-
-**Development Dependencies:**
-- **TypeScript:** Type safety across stack
-- **esbuild:** Server-side bundling for production
-- **tsx:** TypeScript execution for development
+- **date-fns:** Date manipulation.
+- **zod:** Runtime type validation.
+- **class-variance-authority:** Type-safe component variants.
+- **nanoid:** Unique ID generation.

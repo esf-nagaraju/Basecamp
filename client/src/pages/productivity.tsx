@@ -1,157 +1,122 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, DollarSign, CheckCircle2, Phone, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TrendingUp, TrendingDown, DollarSign, CheckCircle2, Phone, Clock, CalendarIcon, ChevronDown, ChevronRight } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useAuth } from "@/hooks/useAuth";
 import { USER_ROLES } from "@shared/schema";
+import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { cn } from "@/lib/utils";
 
-interface ProductivityRecord {
-  id: string;
+interface DailyProductivityRecord {
   date: string;
+  userId: string;
   userName: string;
   role: string;
-  claimsProcessed: number;
   tasksCompleted: number;
-  callsMade: number;
-  revenueCollected: number;
+  claimsProcessed: number;
+  activitiesLogged: number;
   hoursWorked: number;
-  trend: "up" | "down" | "stable";
+  revenueCollected: number;
 }
 
-const testData: ProductivityRecord[] = [
-  {
-    id: "1",
-    date: "2024-10-02",
-    userName: "Sarah Johnson",
-    role: "Agent",
-    claimsProcessed: 45,
-    tasksCompleted: 32,
-    callsMade: 28,
-    revenueCollected: 12500,
-    hoursWorked: 8,
-    trend: "up"
-  },
-  {
-    id: "2",
-    date: "2024-10-02",
-    userName: "Michael Chen",
-    role: "Agent",
-    claimsProcessed: 38,
-    tasksCompleted: 29,
-    callsMade: 24,
-    revenueCollected: 9800,
-    hoursWorked: 8,
-    trend: "stable"
-  },
-  {
-    id: "3",
-    date: "2024-10-02",
-    userName: "Emily Rodriguez",
-    role: "Lead",
-    claimsProcessed: 52,
-    tasksCompleted: 41,
-    callsMade: 35,
-    revenueCollected: 15200,
-    hoursWorked: 8.5,
-    trend: "up"
-  },
-  {
-    id: "4",
-    date: "2024-10-02",
-    userName: "David Kim",
-    role: "Agent",
-    claimsProcessed: 42,
-    tasksCompleted: 30,
-    callsMade: 26,
-    revenueCollected: 11300,
-    hoursWorked: 8,
-    trend: "down"
-  },
-  {
-    id: "5",
-    date: "2024-10-02",
-    userName: "Jessica Martinez",
-    role: "Agent",
-    claimsProcessed: 48,
-    tasksCompleted: 36,
-    callsMade: 31,
-    revenueCollected: 13400,
-    hoursWorked: 8,
-    trend: "up"
-  },
-  {
-    id: "6",
-    date: "2024-10-02",
-    userName: "Robert Taylor",
-    role: "Lead",
-    claimsProcessed: 50,
-    tasksCompleted: 38,
-    callsMade: 33,
-    revenueCollected: 14100,
-    hoursWorked: 8.5,
-    trend: "stable"
-  },
-  {
-    id: "7",
-    date: "2024-10-02",
-    userName: "Amanda White",
-    role: "Agent",
-    claimsProcessed: 36,
-    tasksCompleted: 27,
-    callsMade: 22,
-    revenueCollected: 8900,
-    hoursWorked: 7.5,
-    trend: "down"
-  },
-  {
-    id: "8",
-    date: "2024-10-02",
-    userName: "Christopher Lee",
-    role: "Agent",
-    claimsProcessed: 44,
-    tasksCompleted: 33,
-    callsMade: 29,
-    revenueCollected: 12000,
-    hoursWorked: 8,
-    trend: "up"
-  },
-  {
-    id: "9",
-    date: "2024-10-02",
-    userName: "Nicole Brown",
-    role: "Manager",
-    claimsProcessed: 55,
-    tasksCompleted: 45,
-    callsMade: 38,
-    revenueCollected: 16500,
-    hoursWorked: 9,
-    trend: "up"
-  },
-  {
-    id: "10",
-    date: "2024-10-02",
-    userName: "James Wilson",
-    role: "Agent",
-    claimsProcessed: 40,
-    tasksCompleted: 31,
-    callsMade: 25,
-    revenueCollected: 10700,
-    hoursWorked: 8,
-    trend: "stable"
-  }
-];
+interface DailyMetricsSummary {
+  date: string;
+  totalTasks: number;
+  totalClaims: number;
+  totalActivities: number;
+  totalRevenue: number;
+  activeUsers: number;
+}
+
+type DateRange = "today" | "yesterday" | "last7" | "last30" | "custom";
+type ViewMode = "daily" | "summary";
 
 export default function Productivity() {
   const { user, isLoading } = useAuth();
   const [, navigate] = useLocation();
+  
+  const [dateRange, setDateRange] = useState<DateRange>("last7");
+  const [viewMode, setViewMode] = useState<ViewMode>("summary");
+  const [startDate, setStartDate] = useState<Date>(startOfDay(subDays(new Date(), 7)));
+  const [endDate, setEndDate] = useState<Date>(endOfDay(new Date()));
+  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!isLoading && (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR))) {
       navigate("/");
     }
   }, [user, isLoading, navigate]);
+
+  const { data: historicalData = [], isLoading: isLoadingHistorical, error: historicalError } = useQuery<DailyProductivityRecord[]>({
+    queryKey: ['/api/productivity/historical', startDate.toISOString(), endDate.toISOString()],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+      const response = await fetch(`/api/productivity/historical?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch historical data');
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
+  const { data: summaryData = [], isLoading: isLoadingSummary, error: summaryError } = useQuery<DailyMetricsSummary[]>({
+    queryKey: ['/api/productivity/summary', startDate.toISOString(), endDate.toISOString()],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+      const response = await fetch(`/api/productivity/summary?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch summary data');
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
+  const handleDateRangeChange = (range: DateRange) => {
+    setDateRange(range);
+    const now = new Date();
+    
+    switch (range) {
+      case "today":
+        setStartDate(startOfDay(now));
+        setEndDate(endOfDay(now));
+        break;
+      case "yesterday":
+        setStartDate(startOfDay(subDays(now, 1)));
+        setEndDate(endOfDay(subDays(now, 1)));
+        break;
+      case "last7":
+        setStartDate(startOfDay(subDays(now, 7)));
+        setEndDate(endOfDay(now));
+        break;
+      case "last30":
+        setStartDate(startOfDay(subDays(now, 30)));
+        setEndDate(endOfDay(now));
+        break;
+    }
+  };
+
+  const toggleUserExpansion = (userId: string) => {
+    const newExpanded = new Set(expandedUsers);
+    if (newExpanded.has(userId)) {
+      newExpanded.delete(userId);
+    } else {
+      newExpanded.add(userId);
+    }
+    setExpandedUsers(newExpanded);
+  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-full">Loading...</div>;
@@ -161,11 +126,25 @@ export default function Productivity() {
     return null;
   }
 
-  const totalClaimsProcessed = testData.reduce((sum, record) => sum + record.claimsProcessed, 0);
-  const totalRevenue = testData.reduce((sum, record) => sum + record.revenueCollected, 0);
-  const totalTasks = testData.reduce((sum, record) => sum + record.tasksCompleted, 0);
-  const totalCalls = testData.reduce((sum, record) => sum + record.callsMade, 0);
-  const avgClaimsPerPerson = Math.round(totalClaimsProcessed / testData.length);
+  const isLoadingData = isLoadingHistorical || isLoadingSummary;
+  const hasError = historicalError || summaryError;
+
+  if (hasError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <p className="text-destructive">Failed to load productivity data</p>
+        <Button onClick={() => window.location.reload()} data-testid="button-retry">Retry</Button>
+      </div>
+    );
+  }
+
+  const totalTasks = summaryData.reduce((sum, day) => sum + day.totalTasks, 0);
+  const totalRevenue = summaryData.reduce((sum, day) => sum + day.totalRevenue, 0);
+  const totalClaims = summaryData.reduce((sum, day) => sum + day.totalClaims, 0);
+  const totalActivities = summaryData.reduce((sum, day) => sum + day.totalActivities, 0);
+
+  const avgTasksPerDay = summaryData.length > 0 ? Math.round(totalTasks / summaryData.length) : 0;
+  const avgRevenuePerDay = summaryData.length > 0 ? totalRevenue / summaryData.length : 0;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -176,41 +155,141 @@ export default function Productivity() {
     }).format(amount);
   };
 
-  const getTrendIcon = (trend: string) => {
-    if (trend === "up") {
-      return <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />;
-    } else if (trend === "down") {
-      return <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />;
-    }
-    return null;
-  };
-
   const getRoleBadgeVariant = (role: string): "default" | "secondary" | "outline" => {
-    if (role === "Manager") return "default";
-    if (role === "Lead") return "secondary";
+    if (role === USER_ROLES.MANAGER || role === USER_ROLES.SYSTEM_ADMINISTRATOR) return "default";
     return "outline";
   };
 
+  const chartData = summaryData.map(day => ({
+    date: format(new Date(day.date), 'MM/dd'),
+    tasks: day.totalTasks,
+    claims: day.totalClaims,
+    revenue: day.totalRevenue / 1000,
+  }));
+
+  const userSummaryData = historicalData.reduce((acc, record) => {
+    const key = `${record.userId}-${record.userName}`;
+    if (!acc[key]) {
+      acc[key] = {
+        userId: record.userId,
+        userName: record.userName,
+        role: record.role,
+        totalTasks: 0,
+        totalClaims: 0,
+        totalActivities: 0,
+        totalRevenue: 0,
+        totalHours: 0,
+        dailyRecords: [] as DailyProductivityRecord[],
+      };
+    }
+    acc[key].totalTasks += record.tasksCompleted;
+    acc[key].totalClaims += record.claimsProcessed;
+    acc[key].totalActivities += record.activitiesLogged;
+    acc[key].totalRevenue += record.revenueCollected;
+    acc[key].totalHours += record.hoursWorked;
+    acc[key].dailyRecords.push(record);
+    return acc;
+  }, {} as Record<string, any>);
+
+  const userSummaries = Object.values(userSummaryData).sort((a: any, b: any) => 
+    b.totalRevenue - a.totalRevenue
+  );
+
   return (
     <div className="flex flex-col gap-6 p-6" data-testid="page-productivity">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">Daily Productivity</h1>
-        <p className="text-muted-foreground mt-1" data-testid="text-page-description">
-          Team performance metrics for October 02, 2024
-        </p>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">
+            Historical Productivity
+          </h1>
+          <p className="text-muted-foreground mt-1" data-testid="text-page-description">
+            Team performance metrics and trends
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Select value={dateRange} onValueChange={(value: DateRange) => handleDateRangeChange(value)}>
+            <SelectTrigger className="w-[160px]" data-testid="select-date-range">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today" data-testid="option-today">Today</SelectItem>
+              <SelectItem value="yesterday" data-testid="option-yesterday">Yesterday</SelectItem>
+              <SelectItem value="last7" data-testid="option-last7">Last 7 Days</SelectItem>
+              <SelectItem value="last30" data-testid="option-last30">Last 30 Days</SelectItem>
+              <SelectItem value="custom" data-testid="option-custom">Custom Range</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {dateRange === "custom" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" data-testid="button-custom-date">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(startDate, "MM/dd/yy")} - {format(endDate, "MM/dd/yy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <div className="p-3 space-y-3">
+                  <div>
+                    <label className="text-sm font-medium">Start Date</label>
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={(date) => date && setStartDate(startOfDay(date))}
+                      initialFocus
+                      data-testid="calendar-start-date"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">End Date</label>
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={(date) => date && setEndDate(endOfDay(date))}
+                      data-testid="calendar-end-date"
+                    />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card data-testid="card-total-claims">
+        <Card data-testid="card-total-tasks">
           <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Claims Processed</CardTitle>
+            <CardTitle className="text-sm font-medium">Tasks Completed</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-total-claims">{totalClaimsProcessed}</div>
-            <p className="text-xs text-muted-foreground">
-              Avg {avgClaimsPerPerson} per person
-            </p>
+            {isLoadingData ? (
+              <div className="space-y-2">
+                <div className="h-8 w-20 bg-muted animate-pulse rounded" />
+                <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold" data-testid="text-total-tasks">{totalTasks}</div>
+                <p className="text-xs text-muted-foreground">
+                  Avg {avgTasksPerDay} per day
+                </p>
+                <div className="h-12 mt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={summaryData}>
+                      <Line 
+                        type="monotone" 
+                        dataKey="totalTasks" 
+                        stroke="hsl(var(--chart-1))" 
+                        strokeWidth={1.5}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -220,95 +299,255 @@ export default function Productivity() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-total-revenue">{formatCurrency(totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground">
-              {testData.length} team members
-            </p>
+            {isLoadingData ? (
+              <div className="space-y-2">
+                <div className="h-8 w-20 bg-muted animate-pulse rounded" />
+                <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold" data-testid="text-total-revenue">{formatCurrency(totalRevenue)}</div>
+                <p className="text-xs text-muted-foreground">
+                  Avg {formatCurrency(avgRevenuePerDay)} per day
+                </p>
+                <div className="h-12 mt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={summaryData}>
+                      <Line 
+                        type="monotone" 
+                        dataKey="totalRevenue" 
+                        stroke="hsl(var(--chart-3))" 
+                        strokeWidth={1.5}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
-        <Card data-testid="card-total-tasks">
+        <Card data-testid="card-total-claims">
           <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tasks Completed</CardTitle>
+            <CardTitle className="text-sm font-medium">Claims Processed</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-total-tasks">{totalTasks}</div>
-            <p className="text-xs text-muted-foreground">
-              Across all team members
-            </p>
+            {isLoadingData ? (
+              <div className="space-y-2">
+                <div className="h-8 w-20 bg-muted animate-pulse rounded" />
+                <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold" data-testid="text-total-claims">{totalClaims}</div>
+                <p className="text-xs text-muted-foreground">
+                  Resolved and closed
+                </p>
+                <div className="h-12 mt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={summaryData}>
+                      <Line 
+                        type="monotone" 
+                        dataKey="totalClaims" 
+                        stroke="hsl(var(--chart-2))" 
+                        strokeWidth={1.5}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
-        <Card data-testid="card-total-calls">
+        <Card data-testid="card-total-activities">
           <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Calls Made</CardTitle>
+            <CardTitle className="text-sm font-medium">Activities Logged</CardTitle>
             <Phone className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-total-calls">{totalCalls}</div>
-            <p className="text-xs text-muted-foreground">
-              Customer contacts
-            </p>
+            {isLoadingData ? (
+              <div className="space-y-2">
+                <div className="h-8 w-20 bg-muted animate-pulse rounded" />
+                <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold" data-testid="text-total-activities">{totalActivities}</div>
+                <p className="text-xs text-muted-foreground">
+                  Team interactions
+                </p>
+                <div className="h-12 mt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={summaryData}>
+                      <Line 
+                        type="monotone" 
+                        dataKey="totalActivities" 
+                        stroke="hsl(var(--chart-4))" 
+                        strokeWidth={1.5}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
 
+      <Card data-testid="card-trend-chart">
+        <CardHeader>
+          <CardTitle>Productivity Trends</CardTitle>
+          <CardDescription>Daily metrics over selected period</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingData ? (
+            <div className="h-[300px] w-full bg-muted animate-pulse rounded" />
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis yAxisId="left" />
+                <YAxis yAxisId="right" orientation="right" />
+                <Tooltip />
+                <Legend />
+                <Line yAxisId="left" type="monotone" dataKey="tasks" stroke="hsl(var(--chart-1))" name="Tasks" strokeWidth={2} />
+                <Line yAxisId="left" type="monotone" dataKey="claims" stroke="hsl(var(--chart-2))" name="Claims" strokeWidth={2} />
+                <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="hsl(var(--chart-3))" name="Revenue ($K)" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
+
       <Card data-testid="card-productivity-table">
         <CardHeader>
-          <CardTitle data-testid="text-table-title">Team Member Performance</CardTitle>
-          <CardDescription data-testid="text-table-description">
-            Individual productivity metrics for today
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle data-testid="text-table-title">Team Performance</CardTitle>
+              <CardDescription data-testid="text-table-description">
+                Individual productivity breakdown
+              </CardDescription>
+            </div>
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} data-testid="tabs-view-mode">
+              <TabsList>
+                <TabsTrigger value="summary" data-testid="tab-summary">Summary</TabsTrigger>
+                <TabsTrigger value="daily" data-testid="tab-daily">Daily View</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead data-testid="header-name">Name</TableHead>
+                <TableHead data-testid="header-name">Team Member</TableHead>
                 <TableHead data-testid="header-role">Role</TableHead>
-                <TableHead className="text-right" data-testid="header-claims">Claims</TableHead>
                 <TableHead className="text-right" data-testid="header-tasks">Tasks</TableHead>
-                <TableHead className="text-right" data-testid="header-calls">Calls</TableHead>
+                <TableHead className="text-right" data-testid="header-claims">Claims</TableHead>
                 <TableHead className="text-right" data-testid="header-revenue">Revenue</TableHead>
                 <TableHead className="text-right" data-testid="header-hours">Hours</TableHead>
-                <TableHead className="text-right" data-testid="header-trend">Trend</TableHead>
+                {viewMode === "daily" && <TableHead className="text-right" data-testid="header-expand"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {testData.map((record) => (
-                <TableRow key={record.id} data-testid={`row-productivity-${record.id}`}>
-                  <TableCell className="font-medium" data-testid={`text-name-${record.id}`}>
-                    {record.userName}
-                  </TableCell>
-                  <TableCell data-testid={`badge-role-${record.id}`}>
-                    <Badge variant={getRoleBadgeVariant(record.role)}>
-                      {record.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right" data-testid={`text-claims-${record.id}`}>
-                    {record.claimsProcessed}
-                  </TableCell>
-                  <TableCell className="text-right" data-testid={`text-tasks-${record.id}`}>
-                    {record.tasksCompleted}
-                  </TableCell>
-                  <TableCell className="text-right" data-testid={`text-calls-${record.id}`}>
-                    {record.callsMade}
-                  </TableCell>
-                  <TableCell className="text-right" data-testid={`text-revenue-${record.id}`}>
-                    {formatCurrency(record.revenueCollected)}
-                  </TableCell>
-                  <TableCell className="text-right" data-testid={`text-hours-${record.id}`}>
-                    <div className="flex items-center justify-end gap-1">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      {record.hoursWorked}
+              {isLoadingData ? (
+                <TableRow>
+                  <TableCell colSpan={viewMode === "daily" ? 7 : 6} className="text-center py-8">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      <span className="text-muted-foreground">Loading productivity data...</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right" data-testid={`icon-trend-${record.id}`}>
-                    {getTrendIcon(record.trend)}
+                </TableRow>
+              ) : userSummaries.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={viewMode === "daily" ? 7 : 6} className="text-center py-8 text-muted-foreground">
+                    No productivity data available for the selected period
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                userSummaries.flatMap((summary: any) => {
+                  const mainRow = (
+                    <TableRow 
+                      key={summary.userId}
+                      data-testid={`row-user-${summary.userId}`}
+                    className={cn(viewMode === "daily" && "cursor-pointer hover-elevate")}
+                    onClick={() => viewMode === "daily" && toggleUserExpansion(summary.userId)}
+                  >
+                    <TableCell className="font-medium" data-testid={`text-name-${summary.userId}`}>
+                      {summary.userName}
+                    </TableCell>
+                    <TableCell data-testid={`badge-role-${summary.userId}`}>
+                      <Badge variant={getRoleBadgeVariant(summary.role)}>
+                        {summary.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right" data-testid={`text-tasks-${summary.userId}`}>
+                      {summary.totalTasks}
+                    </TableCell>
+                    <TableCell className="text-right" data-testid={`text-claims-${summary.userId}`}>
+                      {summary.totalClaims}
+                    </TableCell>
+                    <TableCell className="text-right" data-testid={`text-revenue-${summary.userId}`}>
+                      {formatCurrency(summary.totalRevenue)}
+                    </TableCell>
+                    <TableCell className="text-right" data-testid={`text-hours-${summary.userId}`}>
+                      <div className="flex items-center justify-end gap-1">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
+                        {summary.totalHours.toFixed(1)}
+                      </div>
+                    </TableCell>
+                    {viewMode === "daily" && (
+                      <TableCell className="text-right">
+                        <button 
+                          data-testid={`button-expand-${summary.userId}`}
+                          className="inline-flex items-center justify-center"
+                        >
+                          {expandedUsers.has(summary.userId) ? (
+                            <ChevronDown className="h-4 w-4" data-testid={`icon-chevron-down-${summary.userId}`} />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" data-testid={`icon-chevron-right-${summary.userId}`} />
+                          )}
+                        </button>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                  );
+                  
+                  const dailyRows = (viewMode === "daily" && expandedUsers.has(summary.userId))
+                    ? summary.dailyRecords.map((record: DailyProductivityRecord) => (
+                    <TableRow 
+                      key={`${record.userId}-${record.date}`}
+                      className="bg-muted/50"
+                      data-testid={`row-daily-${record.userId}-${record.date}`}
+                    >
+                      <TableCell className="pl-8 text-muted-foreground">
+                        {format(new Date(record.date), 'MMM dd, yyyy')}
+                      </TableCell>
+                      <TableCell></TableCell>
+                      <TableCell className="text-right">{record.tasksCompleted}</TableCell>
+                      <TableCell className="text-right">{record.claimsProcessed}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(record.revenueCollected)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          {record.hoursWorked.toFixed(1)}
+                        </div>
+                      </TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  ))
+                  : [];
+                  
+                  return [mainRow, ...dailyRows];
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>

@@ -752,6 +752,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/productivity/historical', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId, userId } = await getUserContext(req);
+      const includeUserOnly = req.query.userOnly === 'true';
+      const startDateStr = req.query.startDate;
+      const endDateStr = req.query.endDate;
+
+      if (!startDateStr || !endDateStr) {
+        return res.status(400).json({ message: "startDate and endDate are required" });
+      }
+
+      const startDate = new Date(startDateStr);
+      const endDate = new Date(endDateStr);
+
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return res.status(400).json({ message: "Invalid date format" });
+      }
+
+      const records = await storage.getHistoricalProductivity(
+        tenantId,
+        startDate,
+        endDate,
+        includeUserOnly ? userId : undefined
+      );
+
+      res.json(records);
+    } catch (error) {
+      console.error("Error fetching historical productivity:", error);
+      res.status(500).json({ message: "Failed to fetch historical productivity" });
+    }
+  });
+
+  app.get('/api/productivity/summary', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId } = await getUserContext(req);
+      const startDateStr = req.query.startDate;
+      const endDateStr = req.query.endDate;
+
+      if (!startDateStr || !endDateStr) {
+        return res.status(400).json({ message: "startDate and endDate are required" });
+      }
+
+      const startDate = new Date(startDateStr);
+      const endDate = new Date(endDateStr);
+
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return res.status(400).json({ message: "Invalid date format" });
+      }
+
+      const summary = await storage.getDailyMetricsSummary(
+        tenantId,
+        startDate,
+        endDate
+      );
+
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching productivity summary:", error);
+      res.status(500).json({ message: "Failed to fetch productivity summary" });
+    }
+  });
+
   app.post('/api/system/generate-tasks', isAuthenticated, async (req: any, res) => {
     try {
       const { tenantId } = await getUserContext(req);
