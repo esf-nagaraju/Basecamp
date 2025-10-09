@@ -699,6 +699,9 @@ export class DbStorage implements IStorage {
         sfx: claims.sfx,
         totalBalance: claims.balanceDue,
         writeOffs: claims.writeOffs,
+        lineOfBusiness: claims.lineOfBusiness,
+        criteria: claims.criteria,
+        team: claims.team,
       })
       .from(tasks)
       .innerJoin(claims, eq(tasks.claimId, claims.id))
@@ -777,6 +780,9 @@ export class DbStorage implements IStorage {
         sfx: claims.sfx,
         totalBalance: claims.balanceDue,
         writeOffs: claims.writeOffs,
+        lineOfBusiness: claims.lineOfBusiness,
+        criteria: claims.criteria,
+        team: claims.team,
       })
       .from(tasks)
       .innerJoin(claims, eq(tasks.claimId, claims.id))
