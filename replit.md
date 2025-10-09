@@ -6,6 +6,19 @@ Basecamp is a multi-tenant healthcare accounts receivable (AR) management system
 
 ## Recent Changes
 
+### Deployment Health Check Fix (October 2025)
+- **Health Check Endpoints**: Added dedicated health check endpoints for deployment monitoring
+  - `/health`: Primary health check endpoint (responds before any middleware)
+  - `/api/health`: Alternative health check endpoint within API routes
+  - Both endpoints return immediate 200 OK with JSON response: `{"status": "ok", "timestamp": "..."}`
+  - No authentication required for health checks
+  - Ensures deployment platform can verify app health quickly
+
+- **Production Readiness**: Verified static file serving configuration
+  - Production mode serves from `dist/public` directory
+  - Root route properly serves React app HTML
+  - No expensive operations block startup or health checks
+
 ### Work Group Assignment & Filtering Feature (October 2025)
 - **3-Dimensional Filtering System**: Implemented multi-select Work Group filters on Task Management page
   - Three independent filter dimensions: Line of Business (12 options), Criteria (12 options), Team (5 teams)

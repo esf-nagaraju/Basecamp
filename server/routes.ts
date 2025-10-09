@@ -69,6 +69,11 @@ async function getUserContext(req: any): Promise<{ userId: string; tenantId: str
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
 
+  // Health check endpoint for deployment monitoring - no auth required
+  app.get('/api/health', (_req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
