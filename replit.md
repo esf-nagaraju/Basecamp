@@ -6,6 +6,31 @@ ClaimFlowPro is a multi-tenant healthcare accounts receivable (AR) management sy
 
 ## Recent Changes
 
+### Work Group Assignment Feature (October 2025)
+- **3-Dimensional Filtering System**: Implemented multi-select Work Group filters on Task Management page
+  - Three independent filter dimensions: Line of Business (12 options), Criteria (12 options), Team (5 teams)
+  - Popover-based multi-select controls with checkbox selection and search functionality
+  - Simultaneous filtering across all dimensions for precise task isolation
+  - Real-time task table updates when filters change (5s auto-refresh)
+  - Filter state persisted in query parameters for consistent results
+
+- **Work Group Assignment UI**: Added Work Group fields to Claim Detail Modal
+  - Line of Business, Criteria, and Team dropdowns in Claim Details section
+  - Single-select controls for assigning Work Groups to individual claims
+  - Values persist on save and automatically update filters
+  - Empty state ("None") option for unassigned claims
+
+- **Database Schema**: Added Work Group columns to Claims table
+  - `line_of_business` (text): Categorizes claim by business line (DME, HME, Pharmacy, etc.)
+  - `criteria` (text): Categorizes by processing criteria (CPR+, Silent Payors, Credit Balance, etc.)
+  - `team` (text): Assigns claim to specific team (Acuserve, Accurio, Lincare, TP India, TP Manila)
+  - All nullable to support gradual migration of existing claims
+
+- **Backend API Updates**:
+  - `PATCH /api/claims/:id`: Now accepts lineOfBusiness, criteria, and team fields
+  - `GET /api/tasks`: Supports multi-value filtering via array parameters (?lineOfBusiness=DME&lineOfBusiness=HME)
+  - Tenant isolation enforced on all Work Group operations
+
 ### Team Management Feature (October 2025)
 - **User Management UI**: Added comprehensive Team Management page at `/team-management` for System Administrators
   - Displays all users in current tenant with avatar, name, email, role, date added, and last active timestamp
