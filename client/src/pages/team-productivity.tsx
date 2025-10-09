@@ -50,6 +50,16 @@ interface TeamMember {
   status: string;
 }
 
+const formatRole = (role: string): string => {
+  const roleMap: Record<string, string> = {
+    'rcm_specialist': 'RCM Specialist',
+    'auditor': 'Auditor',
+    'manager': 'Manager',
+    'system_administrator': 'System Administrator',
+  };
+  return roleMap[role] || role;
+};
+
 export default function TeamProductivity() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -427,7 +437,7 @@ export default function TeamProductivity() {
                           {member.employeeId || '-'}
                         </TableCell>
                         <TableCell data-testid={`text-role-${member.userId}`}>
-                          {member.role}
+                          {formatRole(member.role)}
                         </TableCell>
                         <TableCell data-testid={`text-region-${member.userId}`}>
                           {member.region || '-'}
