@@ -1071,16 +1071,16 @@ export default function TaskManagement() {
                   <div>
                     <label className="text-sm font-medium">Line of Business</label>
                     <Select
-                      value={currentTaskData.lineOfBusiness || ''}
+                      value={currentTaskData.lineOfBusiness || 'NONE'}
                       onValueChange={(value) => {
-                        setLocalTaskChanges(prev => ({ ...prev, lineOfBusiness: value }));
+                        setLocalTaskChanges(prev => ({ ...prev, lineOfBusiness: value === 'NONE' ? null : value }));
                       }}
                     >
                       <SelectTrigger className="mt-1" data-testid="select-claim-line-of-business">
                         <SelectValue placeholder="Select Line of Business" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="NONE">None</SelectItem>
                         {LINES_OF_BUSINESS.map(lob => (
                           <SelectItem key={lob} value={lob}>{lob}</SelectItem>
                         ))}
@@ -1091,16 +1091,16 @@ export default function TaskManagement() {
                   <div>
                     <label className="text-sm font-medium">Criteria</label>
                     <Select
-                      value={currentTaskData.criteria || ''}
+                      value={currentTaskData.criteria || 'NONE'}
                       onValueChange={(value) => {
-                        setLocalTaskChanges(prev => ({ ...prev, criteria: value }));
+                        setLocalTaskChanges(prev => ({ ...prev, criteria: value === 'NONE' ? null : value }));
                       }}
                     >
                       <SelectTrigger className="mt-1" data-testid="select-claim-criteria">
                         <SelectValue placeholder="Select Criteria" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="NONE">None</SelectItem>
                         {CRITERIA_OPTIONS.map(criteria => (
                           <SelectItem key={criteria} value={criteria}>{criteria}</SelectItem>
                         ))}
@@ -1111,16 +1111,16 @@ export default function TaskManagement() {
                   <div>
                     <label className="text-sm font-medium">Team</label>
                     <Select
-                      value={currentTaskData.team || ''}
+                      value={currentTaskData.team || 'NONE'}
                       onValueChange={(value) => {
-                        setLocalTaskChanges(prev => ({ ...prev, team: value }));
+                        setLocalTaskChanges(prev => ({ ...prev, team: value === 'NONE' ? null : value }));
                       }}
                     >
                       <SelectTrigger className="mt-1" data-testid="select-claim-team">
                         <SelectValue placeholder="Select Team" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="NONE">None</SelectItem>
                         {TEAMS.map(team => (
                           <SelectItem key={team} value={team}>{team}</SelectItem>
                         ))}
