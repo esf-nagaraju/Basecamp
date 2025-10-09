@@ -86,6 +86,9 @@ export interface ClaimFilters {
   maxBalance?: number;
   payorName?: string;
   search?: string;
+  lineOfBusiness?: string | string[];
+  criteria?: string | string[];
+  team?: string | string[];
   limit?: number;
   offset?: number;
 }
@@ -349,6 +352,30 @@ export class DbStorage implements IStorage {
           like(claims.payorName, `%${filters.search}%`)
         )!
       );
+    }
+
+    if (filters.lineOfBusiness) {
+      if (Array.isArray(filters.lineOfBusiness)) {
+        conditions.push(inArray(claims.lineOfBusiness, filters.lineOfBusiness));
+      } else {
+        conditions.push(eq(claims.lineOfBusiness, filters.lineOfBusiness));
+      }
+    }
+
+    if (filters.criteria) {
+      if (Array.isArray(filters.criteria)) {
+        conditions.push(inArray(claims.criteria, filters.criteria));
+      } else {
+        conditions.push(eq(claims.criteria, filters.criteria));
+      }
+    }
+
+    if (filters.team) {
+      if (Array.isArray(filters.team)) {
+        conditions.push(inArray(claims.team, filters.team));
+      } else {
+        conditions.push(eq(claims.team, filters.team));
+      }
     }
 
     let query = db

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, ChevronLeft, ChevronRight, Upload, FileSpreadsheet, X, UserPlus } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Upload, FileSpreadsheet, X, UserPlus, Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -76,10 +78,50 @@ interface TaskMetadata {
   resolutionActions: string[];
 }
 
+const LINES_OF_BUSINESS = [
+  "External",
+  "INR/Medicaid (Offshore)",
+  "INR/Medicaid/Medicaid Managed Care (Offshore)",
+  "INR/Medicaid (Onshore)",
+  "Commercial (Offshore)",
+  "Commercial (Offshore) Permission Granted",
+  "Commercial (Onshore)",
+  "Federal, Misc (Onshore)",
+  "Medicare (Onshore)",
+  "Medicare Advantage (Onshore)",
+  "Credit Balance/Audit (Onshore)"
+];
+
+const CRITERIA_OPTIONS = [
+  "CPR+",
+  "Silent Payors, 34 States",
+  "Credit Balance (Medicaid/INR all states)",
+  "Permission Needed/No Payors, 14 States",
+  "Silent Payors",
+  "Permission Needed, Yes, Granted Yes",
+  "Credit Balance (Medicare, Tricare, Patient)",
+  "Permission Needed/No Payors",
+  "Note: Triwest allows offshore",
+  "Lincare/TP Manila",
+  "Medicare",
+  "Commercial"
+];
+
+const TEAMS = [
+  "Acuserve",
+  "Accurio",
+  "Lincare",
+  "TP India",
+  "TP Manila"
+];
+
 export default function TaskManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<string>("all");
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedLineOfBusiness, setSelectedLineOfBusiness] = useState<string[]>([]);
+  const [selectedCriteria, setSelectedCriteria] = useState<string[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedTask, setSelectedTask] = useState<TaskWithDetails | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -118,13 +160,22 @@ export default function TaskManagement() {
   }, [isModalOpen]);
 
   const { data: tasksData } = useQuery<{ tasks: TaskWithDetails[], totalCount: number }>({
-    queryKey: ['/api/tasks', searchTerm, selectedClient, selectedStatuses, pageSize, currentPage * pageSize],
+    queryKey: ['/api/tasks', searchTerm, selectedClient, selectedStatuses, selectedLineOfBusiness, selectedCriteria, selectedTeam, pageSize, currentPage * pageSize],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
       if (selectedClient && selectedClient !== 'all') params.append('client', selectedClient);
       if (selectedStatuses.length > 0) {
         selectedStatuses.forEach(status => params.append('status', status));
+      }
+      if (selectedLineOfBusiness.length > 0) {
+        selectedLineOfBusiness.forEach(lob => params.append('lineOfBusiness', lob));
+      }
+      if (selectedCriteria.length > 0) {
+        selectedCriteria.forEach(criteria => params.append('criteria', criteria));
+      }
+      if (selectedTeam.length > 0) {
+        selectedTeam.forEach(team => params.append('team', team));
       }
       params.append('limit', pageSize.toString());
       params.append('offset', (currentPage * pageSize).toString());
@@ -471,6 +522,153 @@ export default function TaskManagement() {
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Work Group Filters */}
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-2 block">Line of Business</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between"
+                      data-testid="select-line-of-business"
+                    >
+                      <span className="truncate">
+                        {selectedLineOfBusiness.length === 0
+                          ? "All Lines of Business"
+                          : selectedLineOfBusiness.length === 1
+                          ? selectedLineOfBusiness[0]
+                          : `${selectedLineOfBusiness.length} selected`}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search..." />
+                      <CommandEmpty>No results found.</CommandEmpty>
+                      <CommandGroup className="max-h-64 overflow-auto">
+                        {LINES_OF_BUSINESS.map((lob) => (
+                          <CommandItem
+                            key={lob}
+                            onSelect={() => {
+                              setSelectedLineOfBusiness((prev) =>
+                                prev.includes(lob)
+                                  ? prev.filter((item) => item !== lob)
+                                  : [...prev, lob]
+                              );
+                            }}
+                          >
+                            <Checkbox
+                              checked={selectedLineOfBusiness.includes(lob)}
+                              className="mr-2"
+                            />
+                            {lob}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-2 block">Criteria</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between"
+                      data-testid="select-criteria"
+                    >
+                      <span className="truncate">
+                        {selectedCriteria.length === 0
+                          ? "All Criteria"
+                          : selectedCriteria.length === 1
+                          ? selectedCriteria[0]
+                          : `${selectedCriteria.length} selected`}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search..." />
+                      <CommandEmpty>No results found.</CommandEmpty>
+                      <CommandGroup className="max-h-64 overflow-auto">
+                        {CRITERIA_OPTIONS.map((criteria) => (
+                          <CommandItem
+                            key={criteria}
+                            onSelect={() => {
+                              setSelectedCriteria((prev) =>
+                                prev.includes(criteria)
+                                  ? prev.filter((item) => item !== criteria)
+                                  : [...prev, criteria]
+                              );
+                            }}
+                          >
+                            <Checkbox
+                              checked={selectedCriteria.includes(criteria)}
+                              className="mr-2"
+                            />
+                            {criteria}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-2 block">Team</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between"
+                      data-testid="select-team"
+                    >
+                      <span className="truncate">
+                        {selectedTeam.length === 0
+                          ? "All Teams"
+                          : selectedTeam.length === 1
+                          ? selectedTeam[0]
+                          : `${selectedTeam.length} selected`}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search..." />
+                      <CommandEmpty>No results found.</CommandEmpty>
+                      <CommandGroup className="max-h-64 overflow-auto">
+                        {TEAMS.map((team) => (
+                          <CommandItem
+                            key={team}
+                            onSelect={() => {
+                              setSelectedTeam((prev) =>
+                                prev.includes(team)
+                                  ? prev.filter((item) => item !== team)
+                                  : [...prev, team]
+                              );
+                            }}
+                          >
+                            <Checkbox
+                              checked={selectedTeam.includes(team)}
+                              className="mr-2"
+                            />
+                            {team}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
         </CardContent>

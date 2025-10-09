@@ -107,6 +107,10 @@ export const claims = pgTable("claims", {
   assignedTo: varchar("assigned_to").references(() => users.id),
   priorityScore: integer("priority_score").default(0),
   
+  lineOfBusiness: text("line_of_business"),
+  criteria: text("criteria"),
+  team: text("team"),
+  
   actionCategory: text("action_category"),
   billingProvider: text("billing_provider"),
   dateClaimSent: text("date_claim_sent"),
