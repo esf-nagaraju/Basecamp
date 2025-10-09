@@ -317,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                              'financialClass', 'fixedDenial', 'fixedRemarkCode', 'followUpDays', 
                              'grossAmount', 'location', 'maxCreateDate', 'nrcContract', 'payment', 
                              'payorId', 'payorType', 'pfx', 'renderingProvider', 'servicingLocation', 
-                             'sfx', 'writeOffs', 'allowedAmount'];
+                             'sfx', 'writeOffs', 'allowedAmount', 'lineOfBusiness', 'criteria', 'team'];
       const updates: any = {};
       for (const field of allowedFields) {
         if (req.body[field] !== undefined) {

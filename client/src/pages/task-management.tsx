@@ -69,6 +69,9 @@ interface TaskWithDetails {
   sfx: string | null;
   totalBalance: string | null;
   writeOffs: string | null;
+  lineOfBusiness: string | null;
+  criteria: string | null;
+  team: string | null;
 }
 
 interface TaskMetadata {
@@ -440,7 +443,7 @@ export default function TaskManagement() {
                          'financialClass', 'fixedDenial', 'fixedRemarkCode', 'followUpDays', 
                          'grossAmount', 'location', 'maxCreateDate', 'nrcContract', 'payment', 
                          'payorId', 'payorType', 'pfx', 'renderingProvider', 'servicingLocation', 
-                         'sfx', 'writeOffs', 'allowedAmount'];
+                         'sfx', 'writeOffs', 'allowedAmount', 'lineOfBusiness', 'criteria', 'team'];
     
     const taskUpdates: any = {};
     const claimUpdates: any = {};
@@ -1064,6 +1067,68 @@ export default function TaskManagement() {
               <div className="pt-4 border-t">
                 <h3 className="text-sm font-semibold mb-4">Claim Details</h3>
                 
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label className="text-sm font-medium">Line of Business</label>
+                    <Select
+                      value={currentTaskData.lineOfBusiness || ''}
+                      onValueChange={(value) => {
+                        setLocalTaskChanges(prev => ({ ...prev, lineOfBusiness: value }));
+                      }}
+                    >
+                      <SelectTrigger className="mt-1" data-testid="select-claim-line-of-business">
+                        <SelectValue placeholder="Select Line of Business" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {LINES_OF_BUSINESS.map(lob => (
+                          <SelectItem key={lob} value={lob}>{lob}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Criteria</label>
+                    <Select
+                      value={currentTaskData.criteria || ''}
+                      onValueChange={(value) => {
+                        setLocalTaskChanges(prev => ({ ...prev, criteria: value }));
+                      }}
+                    >
+                      <SelectTrigger className="mt-1" data-testid="select-claim-criteria">
+                        <SelectValue placeholder="Select Criteria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {CRITERIA_OPTIONS.map(criteria => (
+                          <SelectItem key={criteria} value={criteria}>{criteria}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Team</label>
+                    <Select
+                      value={currentTaskData.team || ''}
+                      onValueChange={(value) => {
+                        setLocalTaskChanges(prev => ({ ...prev, team: value }));
+                      }}
+                    >
+                      <SelectTrigger className="mt-1" data-testid="select-claim-team">
+                        <SelectValue placeholder="Select Team" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {TEAMS.map(team => (
+                          <SelectItem key={team} value={team}>{team}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium">Accurio Action/Status</label>
