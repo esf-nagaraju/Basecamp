@@ -65,7 +65,7 @@ Preferred communication style: Simple, everyday language.
     - Marks tasks as completed with today's date
     - Updates productivity metrics automatically
     - Shows confirmation dialog explaining the automation process
-- **Navigation:** Streamlined sidebar navigation with role-based menu items. Task List is the default landing page for all users. Menu items: Task List (all roles), Historical Productivity (Managers/Admins), Team Productivity (Managers/Admins), User Management (Admins only).
+- **Navigation:** Streamlined sidebar navigation with role-based menu items. Team Productivity is the default landing page. Menu items: Task List (all roles), Historical Productivity (Managers/Admins), Team Productivity (Managers/Admins), User Management (Admins only).
 - **Work Group Assignment & Filtering:** Introduced a 3-dimensional filtering system (Line of Business, Criteria, Team) on the Task Management page with multi-select popovers, query parameter persistence, and real-time updates. Claim Detail Modal updated for single-select Work Group assignment.
 - **Team Management:** A dedicated page at `/team-management` for System Administrators to view and manage users within their tenant, including role editing with client-side and server-side access control.
 - **AR Tasks Modal Redesign:**

@@ -26,7 +26,7 @@ function Router() {
         <Route path="/" component={Landing} />
       ) : (
         <>
-          <Route path="/" component={TaskManagement} />
+          <Route path="/" component={TeamProductivity} />
           <Route path="/task-management" component={TaskManagement} />
           <Route path="/productivity" component={Productivity} />
           <Route path="/team-productivity" component={TeamProductivity} />
