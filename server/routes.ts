@@ -243,6 +243,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/user/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const { userId, tenantId } = await getUserContext(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const { password, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      res.status(500).json({ message: "Failed to fetch user profile" });
+    }
+  });
+
+  app.patch('/api/user/preferences', isAuthenticated, async (req: any, res) => {
+    try {
+      const { userId, tenantId } = await getUserContext(req);
+      const { preferences } = req.body;
+      
+      if (!preferences || typeof preferences !== 'object') {
+        return res.status(400).json({ message: "Invalid preferences data" });
+      }
+
+      const updatedUser = await storage.updateUserPreferences(userId, tenantId, preferences);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { password, ...safeUser } = updatedUser;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Error updating user preferences:", error);
+      res.status(500).json({ message: "Failed to update user preferences" });
+    }
+  });
+
   app.get('/api/claims', isAuthenticated, async (req: any, res) => {
     try {
       const { tenantId } = await getUserContext(req);

@@ -42,6 +42,7 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   role: text("role").notNull().default(USER_ROLES.RCM_SPECIALIST),
   fullName: text("full_name"),
+  preferences: jsonb("preferences").default({}),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({
