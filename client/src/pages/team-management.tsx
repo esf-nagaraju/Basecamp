@@ -179,7 +179,18 @@ export default function TeamManagement() {
 
   // Get available roles based on current user's role
   const getAvailableRoles = () => {
-    if (currentUser?.role === 'system_administrator') {
+    // Default to manager permissions if user role is not yet loaded or is manager
+    if (!currentUser || currentUser.role === 'manager') {
+      // Managers can only create non-elevated roles
+      return [
+        { value: 'rcm_specialist', label: 'RCM Specialist' },
+        { value: 'client_user', label: 'Client User' },
+        { value: 'auditor', label: 'Auditor' },
+      ];
+    }
+    
+    // System administrators can create any role
+    if (currentUser.role === 'system_administrator') {
       return [
         { value: 'rcm_specialist', label: 'RCM Specialist' },
         { value: 'manager', label: 'Manager' },
@@ -188,7 +199,8 @@ export default function TeamManagement() {
         { value: 'auditor', label: 'Auditor' },
       ];
     }
-    // Managers can only create non-elevated roles
+    
+    // For any other role, default to manager permissions (safety fallback)
     return [
       { value: 'rcm_specialist', label: 'RCM Specialist' },
       { value: 'client_user', label: 'Client User' },

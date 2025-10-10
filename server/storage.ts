@@ -248,31 +248,20 @@ export class DbStorage implements IStorage {
   async getUsers(tenantId: string): Promise<User[]> {
     const allUsers = await db.select().from(users).where(eq(users.tenantId, tenantId));
     
-    // Filter out test users by excluding common test patterns
+    // Filter out obvious test/automation users by checking for specific test email patterns
     return allUsers.filter(user => {
       const email = user.email?.toLowerCase() || '';
-      const firstName = user.firstName?.toLowerCase() || '';
-      const lastName = user.lastName?.toLowerCase() || '';
-      const fullName = user.fullName?.toLowerCase() || '';
       
-      // Exclude users with test email domains
-      if (email.includes('@test.com') || email.includes('@example.com')) {
-        return false;
-      }
+      // Only exclude users with obvious test email patterns
+      const isTestEmail = 
+        email.includes('@test.com') || 
+        email.includes('@example.com') ||
+        email.includes('@testing.com') ||
+        email.includes('@playwright.test') ||
+        email.startsWith('test-') ||
+        email.startsWith('automation-');
       
-      // Exclude users with test-related names
-      const testPatterns = ['test', 'tester', 'timer', 'table', 'format', 'sidebar', 'isolation', 'fields', 'transaction'];
-      const hasTestPattern = testPatterns.some(pattern => 
-        firstName.includes(pattern) || 
-        lastName.includes(pattern) || 
-        fullName.includes(pattern)
-      );
-      
-      if (hasTestPattern) {
-        return false;
-      }
-      
-      return true;
+      return !isTestEmail;
     });
   }
 
