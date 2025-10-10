@@ -606,13 +606,15 @@ export default function TaskManagement() {
           <h1 className="text-3xl font-bold">Task List</h1>
           <p className="text-muted-foreground">View and assign all tasks</p>
         </div>
-        <Button 
-          onClick={() => setIsUploadDialogOpen(true)}
-          data-testid="button-upload-claims"
-        >
-          <Upload className="mr-2 h-4 w-4" />
-          Upload Claims
-        </Button>
+        {(user?.role === 'system_administrator' || user?.role === 'manager') && (
+          <Button 
+            onClick={() => setIsUploadDialogOpen(true)}
+            data-testid="button-upload-claims"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Upload Claims
+          </Button>
+        )}
       </div>
 
       {/* Summary Cards */}
