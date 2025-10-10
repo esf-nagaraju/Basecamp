@@ -121,7 +121,7 @@ export interface ClaimFilters {
 
 export interface TaskFilters {
   status?: string | string[];
-  assignedTo?: string;
+  assignedTo?: string | string[];
   claimId?: string;
   priority?: string;
   client?: string;
@@ -608,7 +608,11 @@ export class DbStorage implements IStorage {
     }
 
     if (filters.assignedTo) {
-      conditions.push(eq(tasks.assignedTo, filters.assignedTo));
+      if (Array.isArray(filters.assignedTo)) {
+        conditions.push(inArray(tasks.assignedTo, filters.assignedTo));
+      } else {
+        conditions.push(eq(tasks.assignedTo, filters.assignedTo));
+      }
     }
 
     if (filters.claimId) {
@@ -704,7 +708,11 @@ export class DbStorage implements IStorage {
     }
 
     if (filters.assignedTo) {
-      conditions.push(eq(tasks.assignedTo, filters.assignedTo));
+      if (Array.isArray(filters.assignedTo)) {
+        conditions.push(inArray(tasks.assignedTo, filters.assignedTo));
+      } else {
+        conditions.push(eq(tasks.assignedTo, filters.assignedTo));
+      }
     }
 
     if (filters.claimId) {

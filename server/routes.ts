@@ -498,7 +498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const filters = {
         status: req.query.status ? (Array.isArray(req.query.status) ? req.query.status : [req.query.status]) : undefined,
-        assignedTo: req.query.assignedTo as string,
+        assignedTo: req.query.assignedTo ? (Array.isArray(req.query.assignedTo) ? req.query.assignedTo : [req.query.assignedTo]) : undefined,
         claimId: req.query.claimId as string,
         priority: req.query.priority as string,
         client: req.query.client as string,

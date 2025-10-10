@@ -199,7 +199,7 @@ export default function TaskManagement() {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedLineOfBusiness, setSelectedLineOfBusiness] = useState<string[]>([]);
   const [selectedCriteria, setSelectedCriteria] = useState<string[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState<string[]>([]);
+  const [selectedAssignedUsers, setSelectedAssignedUsers] = useState<string[]>([]);
   const [selectedClaimNumbers, setSelectedClaimNumbers] = useState<string[]>([]);
   const [selectedRiskScores, setSelectedRiskScores] = useState<string[]>([]);
   const [selectedPayors, setSelectedPayors] = useState<string[]>([]);
@@ -242,7 +242,7 @@ export default function TaskManagement() {
   }, [isModalOpen]);
 
   const { data: tasksData } = useQuery<{ tasks: TaskWithDetails[], totalCount: number }>({
-    queryKey: ['/api/tasks', searchTerm, selectedClient, selectedStatuses, selectedLineOfBusiness, selectedCriteria, selectedTeam, selectedClaimNumbers, selectedRiskScores, selectedPayors, pageSize, currentPage * pageSize],
+    queryKey: ['/api/tasks', searchTerm, selectedClient, selectedStatuses, selectedLineOfBusiness, selectedCriteria, selectedAssignedUsers, selectedClaimNumbers, selectedRiskScores, selectedPayors, pageSize, currentPage * pageSize],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
@@ -256,8 +256,8 @@ export default function TaskManagement() {
       if (selectedCriteria.length > 0) {
         selectedCriteria.forEach(criteria => params.append('criteria', criteria));
       }
-      if (selectedTeam.length > 0) {
-        selectedTeam.forEach(team => params.append('team', team));
+      if (selectedAssignedUsers.length > 0) {
+        selectedAssignedUsers.forEach(userId => params.append('assignedTo', userId));
       }
       if (selectedClaimNumbers.length > 0) {
         selectedClaimNumbers.forEach(cn => params.append('claimNumber', cn));
@@ -479,6 +479,7 @@ export default function TaskManagement() {
   const tasks = tasksData?.tasks || [];
   const totalCount = tasksData?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
+  const users = usersData || [];
 
   const uniqueClients = Array.from(new Set(tasks.map(t => t.client)))
     .filter(client => client && client.trim() !== '')
@@ -766,20 +767,20 @@ export default function TaskManagement() {
               </div>
 
               <div className="flex-1">
-                <label className="text-sm font-medium mb-2 block">Team</label>
+                <label className="text-sm font-medium mb-2 block">Team Member</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className="w-full justify-between"
-                      data-testid="select-team"
+                      data-testid="select-team-member"
                     >
                       <span className="truncate">
-                        {selectedTeam.length === 0
-                          ? "All Teams"
-                          : selectedTeam.length === 1
-                          ? selectedTeam[0]
-                          : `${selectedTeam.length} selected`}
+                        {selectedAssignedUsers.length === 0
+                          ? "All Team Members"
+                          : selectedAssignedUsers.length === 1
+                          ? users?.find(u => u.id === selectedAssignedUsers[0])?.firstName + ' ' + users?.find(u => u.id === selectedAssignedUsers[0])?.lastName
+                          : `${selectedAssignedUsers.length} selected`}
                       </span>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -789,22 +790,22 @@ export default function TaskManagement() {
                       <CommandInput placeholder="Search..." />
                       <CommandEmpty>No results found.</CommandEmpty>
                       <CommandGroup className="max-h-64 overflow-auto">
-                        {TEAMS.map((team) => (
+                        {users?.map((user) => (
                           <CommandItem
-                            key={team}
+                            key={user.id}
                             onSelect={() => {
-                              setSelectedTeam((prev) =>
-                                prev.includes(team)
-                                  ? prev.filter((item) => item !== team)
-                                  : [...prev, team]
+                              setSelectedAssignedUsers((prev) =>
+                                prev.includes(user.id)
+                                  ? prev.filter((item) => item !== user.id)
+                                  : [...prev, user.id]
                               );
                             }}
                           >
                             <Checkbox
-                              checked={selectedTeam.includes(team)}
+                              checked={selectedAssignedUsers.includes(user.id)}
                               className="mr-2"
                             />
-                            {team}
+                            {user.firstName} {user.lastName}
                           </CommandItem>
                         ))}
                       </CommandGroup>
