@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { USER_ROLES } from "@shared/schema";
@@ -567,7 +568,13 @@ export default function TeamProductivity() {
                           />
                         </TableCell>
                         <TableCell className="font-medium" data-testid={`text-name-${member.userId}`}>
-                          {member.employeeName}
+                          <Link
+                            href={`/task-management?assignedTo=${member.userId}`}
+                            className="text-primary hover:underline cursor-pointer"
+                            data-testid={`link-tasks-${member.userId}`}
+                          >
+                            {member.employeeName}
+                          </Link>
                         </TableCell>
                         <TableCell data-testid={`text-employee-id-${member.userId}`}>
                           {member.employeeId || '-'}

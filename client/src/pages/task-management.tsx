@@ -244,6 +244,14 @@ export default function TaskManagement() {
     }
   }, [isModalOpen]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const assignedToParam = params.get('assignedTo');
+    if (assignedToParam) {
+      setSelectedAssignedUsers([assignedToParam]);
+    }
+  }, []);
+
   const { data: tasksData } = useQuery<{ tasks: TaskWithDetails[], totalCount: number }>({
     queryKey: ['/api/tasks', searchTerm, selectedClient, selectedStatuses, selectedLineOfBusiness, selectedCriteria, selectedAssignedUsers, selectedClaimNumbers, selectedRiskScores, selectedPayors, pageSize, currentPage * pageSize],
     queryFn: async () => {

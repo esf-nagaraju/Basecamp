@@ -58,6 +58,7 @@ Preferred communication style: Simple, everyday language.
   - Monitor real-time productivity with performance badges (High ≥100%, Medium 80-99%, Low <80%)
   - Search and filter team members by name, employee ID, or email
   - Multi-select team members for bulk assignment and target setting operations
+  - **Quick Navigation to Tasks:** Click on any team member's name to navigate directly to Task List page pre-filtered to show that person's tasks
   - **Bulk Task Generation:** One-click "Generate Tasks" button that automatically creates tasks to fulfill daily targets:
     - Calculates per-user remaining targets (target - processed) for all team members
     - Generates tasks distributed proportionally across users who haven't met their targets
