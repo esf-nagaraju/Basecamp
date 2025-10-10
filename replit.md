@@ -1,167 +1,54 @@
 # Basecamp - Healthcare AR Management System
 
 ## Overview
-
-Basecamp is a multi-tenant healthcare accounts receivable (AR) management system designed for medical claims processing. It enables healthcare organizations to manage claims workflows, track denials, monitor productivity, and automate task prioritization. Built for enterprise use, it supports role-based access control (RCM Specialist, Manager, System Administrator, Client User, Auditor) and provides financial intelligence for medical billing operations. The system aims to streamline operations and enhance financial performance for healthcare providers.
+Basecamp is an enterprise-grade, multi-tenant healthcare accounts receivable (AR) management system. Its core purpose is to streamline medical claims processing, enabling healthcare organizations to efficiently manage claims workflows, track denials, monitor productivity, and automate task prioritization. The system provides financial intelligence and supports various user roles (RCM Specialist, Manager, System Administrator, Client User, Auditor) to enhance financial performance for healthcare providers.
 
 ## User Preferences
-
 Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend Architecture
-
-**Technology Stack:** React 18 (TypeScript), Wouter (routing), TanStack React Query v5 (server state), shadcn/ui (UI components), Tailwind CSS (styling).
-
-**Design System:** Adheres to Microsoft Fluent Design principles, optimized for data-heavy enterprise healthcare applications. Features include information density, professional aesthetic, a subtle elevation system, dual theme support (light/dark mode), and role-based visual hierarchy.
-
-**Component Architecture:** Employs reusable UI components, domain-specific components for claims management (e.g., ClaimsTable, MetricCard), and layout components (e.g., AppSidebar).
-
-**State Management Approach:** Server state via React Query; authentication state via `useAuth` hook; theme state via Context API; form state with react-hook-form and Zod validation.
-
-### Backend Architecture
-
-**Technology Stack:** Node.js (TypeScript), Express.js, Drizzle ORM with Neon serverless PostgreSQL, express-session (session management), OpenID Connect via Replit Auth with Passport.js (authentication).
-
-**API Design:** RESTful API under `/api` with authentication, tenant isolation at the data access layer, and response logging.
-
-**Data Access Pattern:** Features a storage abstraction layer, tenant-scoped queries, bulk operations for claims and tasks (including CSV upload with transactional safety), and bulk task assignment for high-volume operations. Computed metrics aggregation is also supported.
-
-**Background Processing:** Includes a task generator for automated priority scoring based on claim age, balance, denial codes, and payor type, along with SLA status computation.
-
-### Database Architecture
-
-**Database Technology:** PostgreSQL (Neon serverless).
-
-**Multi-Tenancy:** Tenant-scoped data model using `tenantId` foreign keys and row-level isolation. Tenant settings are stored as JSONB.
-
-**Core Schema:**
-1.  **Tenants Table:** Organization-level configuration with JSONB settings.
-2.  **Users Table:** User authentication, profiles, and role-based access control (RCM Specialist, Manager, System Administrator, Client User, Auditor).
-3.  **Claims Table:** Medical claim records with patient, payor, financial, temporal, clinical, and workflow data.
-4.  **Tasks Table:** Workflow task management linked to claims, with user assignment, priority, and status.
-5.  **Activity Logs Table:** Audit trail for actions, user attribution, and JSONB details.
-6.  **Sessions Table:** PostgreSQL-backed authentication sessions with TTL-based expiration.
-7.  **Team Assignments Table:** Region and payer assignments for team members with employee IDs.
-8.  **Daily Targets Table:** Daily claim processing targets with historical tracking and change reasons.
-9.  **Productivity Metrics Table:** Real-time productivity tracking including claims processed, pending, handling time, accuracy rate, and **revenue collected** (decimal precision: 12,2 supporting up to $999,999,999,999.99).
-
-**Data Validation:** Utilizes Zod schemas generated from Drizzle definitions for type-safe data models and API request validation.
-
 ### UI/UX Decisions
-- **Productivity Analytics:** Implemented comprehensive historical productivity tracking with date range filtering, trend visualization, summary metrics, and a dual-view team performance table. Includes skeleton loaders, error handling, and role-based access for Managers and System Administrators.
-- **Team Productivity Management:** A dedicated page at `/team-productivity` for Managers and System Administrators to:
-  - View team overview metrics (total members, avg performance, high performers, claims processed)
-  - Manage region/payer assignments with bulk operations
-  - Set and track daily claim targets with change history
-  - Monitor real-time productivity with performance badges (High ≥100%, Medium 80-99%, Low <80%)
-  - Search and filter team members by name, employee ID, or email
-  - Multi-select team members for bulk assignment and target setting operations
-  - **Quick Navigation to Tasks:** Click on any team member's name to navigate directly to Task List page pre-filtered to show that person's tasks
-  - **Bulk Task Generation:** One-click "Generate Tasks" button that automatically creates tasks to fulfill daily targets:
-    - Calculates per-user remaining targets (target - processed) for all team members
-    - Generates tasks distributed proportionally across users who haven't met their targets
-    - Creates one realistic claim per task with all metadata fields populated
-    - Marks tasks as completed with today's date
-    - Updates productivity metrics automatically
-    - Shows confirmation dialog explaining the automation process
-- **Navigation:** Streamlined sidebar navigation with role-based menu items. Team Productivity is the default landing page and first menu item. Menu order: Team Productivity (Managers/Admins), Task List (all roles), Historical Productivity (Managers/Admins), Analytics (Managers/Admins), User Management (Admins only), Settings (all roles).
-- **Analytics & Reporting Dashboard (Phase 1):** Comprehensive business intelligence page at `/analytics` for Managers and System Administrators featuring:
-  - **Summary Metrics:** Four KPI cards displaying Total Revenue (30-day), Total Denials, Active Team Members, and AR 90+ Days percentage
-  - **Revenue Trends:** Line chart visualizing daily revenue collection over 30-day period with per-claim averages
-  - **Top Denial Codes:** Table showing most frequent denial codes with count, total balance at risk, and average balance per denial
-  - **AR Aging Distribution:** Bar chart displaying outstanding balances across aging buckets (0-30, 31-60, 61-90, 90+ days)
-  - **Team Performance Scorecard:** Table showing individual team member metrics (claims processed, revenue collected, pending claims, avg handling time, accuracy rate)
-  - All visualizations use Recharts library with responsive design and formatted tooltips
-- **Work Group Assignment & Filtering:** Introduced a 3-dimensional filtering system (Line of Business, Criteria, Team) on the Task Management page with multi-select popovers, query parameter persistence, and real-time updates. Claim Detail Modal updated for single-select Work Group assignment.
-- **Team Management:** A dedicated page at `/team-management` for System Administrators to view and manage users within their tenant, including role editing with client-side and server-side access control.
-- **AR Tasks Modal Redesign:**
-  - Removed Progress field (slider and input) from the interface
-  - Changed Priority to Risk Score with discrete values 1-10 for clearer risk assessment
-  - Relabeled "Accurio Action/Status" to "Action/Status" for clarity
-  - Reorganized Resolution fields (Resolution Category, Root Cause Category, Root Cause Detail, Resolution/Action Taken) to appear directly above Notes for improved workflow
-  - Made all database-driven fields read-only in Claim Details, Provider Information, Payor Information, Financial Details, and Additional Information sections to prevent unintended data modification
-  - Updated AR Tasks table view to display Risk Score (1-10) with color-coded badges: High risk (8-10, red), Medium risk (4-7, default), Low risk (1-3, secondary)
-  - **Parent-Child Action Workflow:** Implemented hierarchical relationship between Action Category and Action/Status with auto-populated Follow Up Days:
-    - Action Category (parent) offers 3 options: Status check, Payment - To be Posted, Resubmit
-    - Action/Status (child) dynamically filters options based on selected Action Category (40+ statuses for Status check, 2 for Payment - To be Posted, 19 for Resubmit)
-    - Follow Up Days auto-populates when both fields are selected (values: 0, 7, 15, or 28 days)
-    - Changing Action Category clears dependent Action/Status and Follow Up Days fields
-    - Data sourced from Excel file with 62 unique Category::Status::Days mappings
-- **Settings Page (My Profile):** User preference management page at `/settings` accessible to all roles featuring:
-  - **Personal Information:** Read-only display of user profile (name, email, role)
-  - **Display Preferences:** Theme selection (light/dark), timezone, date format, page density (compact/comfortable/spacious)
-  - **Notification Preferences:** Toggle controls for email notifications, task assignment alerts, daily digest, high-value claim alerts with configurable threshold
-  - Preferences stored in user's JSONB preferences column with one-time hydration on page load to prevent state conflicts
-  - Theme changes apply immediately via ThemeProvider and persist across sessions
-  - All preferences save to database and reload on subsequent visits
+The frontend adheres to Microsoft Fluent Design principles, emphasizing information density, a professional aesthetic, and role-based visual hierarchy. It supports dual themes (light/dark mode). Key features include:
+-   **Productivity Analytics:** Comprehensive historical tracking with date range filtering, trend visualization, and team performance tables.
+-   **Team Productivity Management:** Dedicated page for managers to oversee team metrics, manage region/payer assignments, set daily targets, monitor real-time productivity, and generate tasks to meet targets.
+-   **Navigation:** Streamlined sidebar navigation with role-based menu items.
+-   **Analytics & Reporting Dashboard:** Business intelligence featuring KPI cards (Total Revenue, Total Denials, Active Team Members, AR 90+ Days), revenue trends, top denial codes, AR aging distribution, and team performance scorecards.
+-   **Work Group Assignment & Filtering:** 3-dimensional filtering (Line of Business, Criteria, Team) for task management.
+-   **Team Management:** Page for System Administrators and Managers to view and manage users, edit roles, and add new users with role-based restrictions:
+    -   **Add User Feature:** System Administrators can create users with any role; Managers restricted to non-elevated roles (RCM Specialist, Client User, Auditor) to prevent privilege escalation
+    -   Form validation using react-hook-form with zodResolver matching backend Zod schema
+    -   Backend POST /api/users endpoint with security enforcement and employee ID support for team assignments
+    -   Race condition guards prevent elevated roles from being exposed during auth loading
+-   **AR Tasks Modal Redesign:** Simplified task management with a "Risk Score" (1-10) replacing "Priority," and a parent-child action workflow for resolution categories with auto-populated follow-up days.
+-   **Settings Page:** User preference management for personal info, display settings (theme, timezone, date format, density), and notification toggles.
 
 ### Technical Implementations
-- **Health Check Endpoints:** Added `/health` and `/api/health` for deployment monitoring, returning 200 OK with `{"status": "ok"}`.
-- **Backend API Support:** 
-  - Productivity data: `/api/productivity/summary`, `/api/productivity/historical`
-  - Work group assignment: `PATCH /api/claims/:id`
-  - Filtered task retrieval: `GET /api/tasks`
-  - Team productivity management: 
-    - `GET /api/team/members` - Fetch team members with assignments, targets, and metrics
-    - `POST /api/team/assign` - Bulk assign region/payer to team members
-    - `GET /api/team/targets` - Get daily targets for a date
-    - `POST /api/team/targets` - Set daily targets for team members
-    - `GET /api/team/metrics` - Get productivity metrics for a date
-    - `POST /api/team/generate-tasks` - Bulk generate tasks to fulfill daily targets for all team members
-  - Analytics & Reporting:
-    - `GET /api/analytics/revenue-trends?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD` - Daily revenue trends with per-claim averages
-    - `GET /api/analytics/denial-codes?limit=10` - Top denial codes with counts, total balances, and averages (uses CTE with JSONB type checking)
-    - `GET /api/analytics/team-performance?date=YYYY-MM-DD` - Team scorecard with claims, revenue, pending, handling time, and accuracy
-    - `GET /api/analytics/ar-aging` - AR aging distribution across buckets (0-30, 31-60, 61-90, 90+ days)
-  - User Settings:
-    - `GET /api/user/profile` - Fetch current user's profile and preferences
-    - `PATCH /api/user/preferences` - Update user preferences (theme, timezone, notifications, etc.)
-- **Database Schema Updates:** 
-  - Added `line_of_business`, `criteria`, and `team` columns to the Claims table for Work Group assignment
-  - Created `team_assignments`, `daily_targets`, and `productivity_metrics` tables for team productivity management
-  - Added `revenue_collected` decimal column to productivity_metrics table for financial tracking
-  - Added `preferences` JSONB column to users table for storing user-specific settings (theme, timezone, notifications, etc.)
-- **Revenue Collected Tracking:**
-  - Productivity metrics now track revenue collected alongside claims processed
-  - Historical productivity data aggregates total revenue by date
-  - Task generation automatically calculates and updates revenue from claim payment values
-  - Revenue data sourced from claims.payment field (decimal precision supports up to $999,999,999,999.99)
-  - **Historical Revenue Backfill:** Applied random realistic revenue values ($300-$800 per claim range) to 9,345 historical productivity metrics records (dates before 2025-10-10), resulting in daily totals of $2.7M-$3.1M with per-claim averages of $520-$570
-- **Security & Authentication:** 
-  - Multi-layer authorization (client-side guard + server-side validation)
-  - Tenant isolation with row-level security
-  - **Role Persistence Fix:** Auth pipeline now preserves elevated roles (Manager, System Administrator) when OIDC claims don't include role field:
-    - `replitAuth.ts` checks for existing users with non-default roles and preserves them when role claim is missing
-    - `storage.ts upsertUser()` only updates role field when explicitly provided (undefined = preserve existing)
-    - New users default to RCM Specialist if no role specified
-    - Prevents unintended role downgrade on login when OIDC provider doesn't send custom role claims
+-   **Frontend:** Built with React 18 (TypeScript), Wouter for routing, TanStack React Query for server state, shadcn/ui for components, and Tailwind CSS for styling.
+-   **Backend:** Node.js (TypeScript) with Express.js, Drizzle ORM, and Neon serverless PostgreSQL. Authentication uses OpenID Connect via Replit Auth with Passport.js.
+-   **API Design:** RESTful API with authentication, tenant isolation, and response logging. Includes endpoints for productivity, team management, analytics, and user settings.
+-   **Data Access:** Storage abstraction layer, tenant-scoped queries, bulk operations (claims, tasks, assignments), and computed metrics aggregation.
+-   **Background Processing:** Task generator for automated priority scoring and SLA computation.
+-   **Database:** PostgreSQL (Neon serverless) with a multi-tenancy model using `tenantId` and row-level isolation. Core tables include Tenants, Users, Claims, Tasks, Activity Logs, Sessions, Team Assignments, Daily Targets, and Productivity Metrics (including `revenue_collected` with high precision). Zod schemas are used for data validation.
+-   **Security:** Multi-layer authorization, row-level security, and a fix for role persistence during OIDC authentication to prevent unintended role downgrades.
 
 ## External Dependencies
 
 **Authentication & Authorization:**
-- **Replit Auth:** OpenID Connect provider for SSO.
+-   **Replit Auth:** OpenID Connect provider for SSO.
 
 **Database Services:**
-- **Neon PostgreSQL:** Serverless PostgreSQL database.
+-   **Neon PostgreSQL:** Serverless PostgreSQL database.
 
 **Build & Development Tools:**
-- **Vite:** Frontend build tool and dev server.
+-   **Vite:** Frontend build tool and dev server.
 
 **UI Component Libraries:**
-- **Radix UI:** Headless component primitives.
-- **shadcn/ui:** Pre-built accessible components.
-- **Lucide React:** Icon library.
-- **react-day-picker:** Calendar/date picker component.
-- **cmdk:** Command palette component.
-- **vaul:** Drawer component.
-
-**Data Visualization:**
-- **Recharts:** Charting library.
+-   **Radix UI:** Headless component primitives.
+-   **shadcn/ui:** Pre-built accessible components.
+-   **Lucide React:** Icon library.
+-   **Recharts:** Charting library.
 
 **Utility Libraries:**
-- **date-fns:** Date manipulation.
-- **zod:** Runtime type validation.
-- **class-variance-authority:** Type-safe component variants.
-- **nanoid:** Unique ID generation.
+-   **zod:** Runtime type validation.
+-   **date-fns:** Date manipulation.
