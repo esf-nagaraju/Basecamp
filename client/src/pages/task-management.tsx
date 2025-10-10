@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, ChevronLeft, ChevronRight, Upload, FileSpreadsheet, X, UserPlus, Check, ChevronsUpDown, Filter } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Upload, FileSpreadsheet, X, UserPlus, Check, ChevronsUpDown, Filter, ListTodo, User, Clock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -16,6 +16,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface User {
   id: string;
@@ -36,6 +37,7 @@ interface TaskWithDetails {
   assignedToName: string | null;
   totalTimeSeconds: number;
   activeTimerStartedAt: string | null;
+  completedAt: string | null;
   resolutionCategory: string | null;
   rootCauseCategory: string | null;
   rootCauseDetail: string | null;
@@ -213,6 +215,7 @@ export default function TaskManagement() {
   const [isBulkAssignDialogOpen, setIsBulkAssignDialogOpen] = useState(false);
   const [bulkAssignUserId, setBulkAssignUserId] = useState<string>("");
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const pageSize = 50;
 
@@ -488,6 +491,21 @@ export default function TaskManagement() {
     .filter(p => p && p.trim() !== '')
     .sort();
 
+  const totalTasks = totalCount;
+  const myTasks = tasks.filter(t => t.assignedTo === user?.id).length;
+  const pendingTasks = tasks.filter(t => t.status.toLowerCase() === 'pending').length;
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const completedToday = tasks.filter(t => {
+    if (t.status.toLowerCase() === 'completed' && t.completedAt) {
+      const completedDate = new Date(t.completedAt);
+      completedDate.setHours(0, 0, 0, 0);
+      return completedDate.getTime() === today.getTime();
+    }
+    return false;
+  }).length;
+
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -587,6 +605,49 @@ export default function TaskManagement() {
           <Upload className="mr-2 h-4 w-4" />
           Upload Claims
         </Button>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card data-testid="card-total-tasks">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
+            <ListTodo className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-total-tasks">{totalTasks}</div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-my-tasks">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">My Tasks</CardTitle>
+            <User className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-my-tasks">{myTasks}</div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-pending-tasks">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Tasks</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-pending-tasks">{pendingTasks}</div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-completed-today">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completed Today</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-completed-today">{completedToday}</div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
