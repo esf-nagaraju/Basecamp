@@ -676,26 +676,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'Other'
         ],
         rootCauseCategories: [
-          'Missing Information',
-          'Coding Error',
-          'Authorization Issue',
-          'Eligibility Problem',
-          'Provider Network Issue',
+          'Additional Information Requested',
+          'Authorization',
           'Billing Error',
-          'Medical Necessity',
-          'Other'
+          'Bundling/Inclusive Service',
+          'Claim is in Process',
+          'Coding',
+          'Demographics Issue',
+          'Eligibility/Benefits',
+          'No Response',
+          'Non-Covered',
+          'NPI/Non Par/Out of Network',
+          'Paid According to Contract',
+          'Patient Responsibility',
+          'Payment Issue',
+          'Timely Filing'
         ],
-        rootCauseDetails: [
-          'Missing documentation',
-          'Incorrect procedure code',
-          'Prior authorization not obtained',
-          'Patient not eligible on DOS',
-          'Out of network provider',
-          'Duplicate claim',
-          'Services not medically necessary',
-          'Timely filing limit exceeded',
-          'Other'
-        ],
+        rootCauseDetails: {
+          'Additional Information Requested': [
+            'Clinicals/Medical Records Requested',
+            'COB from Patient',
+            'Itemized Bill',
+            'Pending Info From Member',
+            'Primary EOB',
+            'Requested W9 Form'
+          ],
+          'Authorization': [
+            'Authorization - Invalid',
+            'Authorization Not Obtained'
+          ],
+          'Billing Error': [
+            'Invalid Submission/Readmission Code',
+            'Billed to Incorrect Payer ID',
+            'Billed to Incorrect Payer',
+            'Denied as Duplicate',
+            'No Claim on File'
+          ],
+          'Bundling/Inclusive Service': [
+            'Charges Bundled/Inclusive',
+            'Inclusive in Global Period'
+          ],
+          'Claim is in Process': [
+            'Review with Insurance',
+            'Recently Filed',
+            'Approved to pay (Ck# not issued yet)',
+            'Appeal in Process'
+          ],
+          'Coding': [
+            'Invalid POS',
+            'Diagnosis Inconsistent with Procedure',
+            'Missing/Invalid NDC Number',
+            'Procedure/Diagnosis Code Inconsistent with Patient\'s Age',
+            'Procedure/Diagnosis Code Inconsistent with Pt Gender',
+            'Missing/Invalid CPT-4 and/or HCPCS',
+            'Missing/Invalid Modifier',
+            'Services Deemed to be experimental/investigational',
+            'Medical Necessity',
+            'NCD/LCD Guidelines not met',
+            'Non Emergent Services',
+            'New Patient Qualification not Met'
+          ],
+          'Demographics Issue': [
+            'Patient Name Conflict',
+            'DOB Mismatch',
+            'Incorrect Policy ID',
+            'Patient Address/Zip Code'
+          ],
+          'Eligibility/Benefits': [
+            'Benefits Exhausted - No Payable Benefits',
+            'COB - Other Insurance Primary',
+            'Coverage Terminated',
+            'Life Time Maximum Met',
+            'Member Cannot be Found',
+            'Patient Did Not Pay Premiums',
+            'Dependent Not Eligible',
+            'Hospice Related',
+            'Hospice / SNF'
+          ],
+          'No Response': [
+            'No Response On Claim'
+          ],
+          'Non-Covered': [
+            'Non Covered Under Patient Plan',
+            'Non-Covered Under Provider Contract',
+            'Routine Services/Exam'
+          ],
+          'NPI/Non Par/Out of Network': [
+            'NPI and Taxonomy Not Matching',
+            'NPI-Physician Not Credentialed',
+            'Provider Out of Network'
+          ],
+          'Paid According to Contract': [
+            'Claim Paid To Provider',
+            'Claim Paid to Patient',
+            'Posting Error',
+            'Primary Paid More than Secondary Allowed'
+          ],
+          'Patient Responsibility': [
+            'Patient Deductible/Coinsurance/Copay'
+          ],
+          'Payment Issue': [
+            'Claim Underpaid',
+            'Claim Overpaid Referral'
+          ],
+          'Timely Filing': [
+            'Claim Billed Untimely'
+          ]
+        },
         resolutionActions: [
           'Submitted additional documentation',
           'Corrected coding',

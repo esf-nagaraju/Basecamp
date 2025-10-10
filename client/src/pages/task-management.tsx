@@ -80,7 +80,7 @@ interface TaskWithDetails {
 interface TaskMetadata {
   resolutionCategories: string[];
   rootCauseCategories: string[];
-  rootCauseDetails: string[];
+  rootCauseDetails: Record<string, string[]>;
   resolutionActions: string[];
 }
 
@@ -1464,7 +1464,7 @@ export default function TaskManagement() {
                 <Select
                   value={currentTaskData.rootCauseCategory || ''}
                   onValueChange={(value) => {
-                    setLocalTaskChanges(prev => ({ ...prev, rootCauseCategory: value }));
+                    setLocalTaskChanges(prev => ({ ...prev, rootCauseCategory: value, rootCauseDetail: '' }));
                   }}
                 >
                   <SelectTrigger className="mt-1" data-testid="select-root-cause-category">
@@ -1487,16 +1487,21 @@ export default function TaskManagement() {
                   onValueChange={(value) => {
                     setLocalTaskChanges(prev => ({ ...prev, rootCauseDetail: value }));
                   }}
+                  disabled={!currentTaskData.rootCauseCategory}
                 >
                   <SelectTrigger className="mt-1" data-testid="select-root-cause-detail">
-                    <SelectValue placeholder="Select root cause detail" />
+                    <SelectValue placeholder={currentTaskData.rootCauseCategory ? "Select root cause detail" : "Select category first"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {(metadata?.rootCauseDetails || [])
-                      .filter(detail => detail && detail.trim() !== '')
-                      .map(detail => (
-                        <SelectItem key={detail} value={detail}>{detail}</SelectItem>
-                      ))}
+                    {currentTaskData.rootCauseCategory && metadata?.rootCauseDetails?.[currentTaskData.rootCauseCategory] ? (
+                      metadata.rootCauseDetails[currentTaskData.rootCauseCategory]
+                        .filter((detail: string) => detail && detail.trim() !== '')
+                        .map((detail: string) => (
+                          <SelectItem key={detail} value={detail}>{detail}</SelectItem>
+                        ))
+                    ) : (
+                      <SelectItem value="_none" disabled>No details available</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
