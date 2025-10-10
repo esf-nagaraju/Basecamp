@@ -1329,7 +1329,7 @@ export class DbStorage implements IStorage {
         status: teamAssignments.status,
       })
       .from(users)
-      .leftJoin(teamAssignments, and(
+      .innerJoin(teamAssignments, and(
         eq(teamAssignments.userId, users.id),
         eq(teamAssignments.tenantId, tenantId),
         eq(teamAssignments.status, 'active')
@@ -1344,7 +1344,13 @@ export class DbStorage implements IStorage {
         eq(productivityMetrics.tenantId, tenantId),
         eq(productivityMetrics.metricDate, today)
       ))
-      .where(eq(users.tenantId, tenantId));
+      .where(and(
+        eq(users.tenantId, tenantId),
+        or(
+          eq(users.role, USER_ROLES.RCM_SPECIALIST),
+          eq(users.role, USER_ROLES.AUDITOR)
+        )
+      ));
 
     const results = await query;
     
@@ -1361,7 +1367,7 @@ export class DbStorage implements IStorage {
       performancePercent: row.dailyClaimTarget > 0 
         ? Math.round((row.claimsProcessedToday / row.dailyClaimTarget) * 100)
         : 0,
-      status: row.status || 'active',
+      status: row.status,
     })).filter(member => {
       if (filters.region && member.region !== filters.region) return false;
       if (filters.payer && member.payer !== filters.payer) return false;
