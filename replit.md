@@ -65,7 +65,14 @@ Preferred communication style: Simple, everyday language.
     - Marks tasks as completed with today's date
     - Updates productivity metrics automatically
     - Shows confirmation dialog explaining the automation process
-- **Navigation:** Streamlined sidebar navigation with role-based menu items. Team Productivity is the default landing page and first menu item. Menu order: Team Productivity (Managers/Admins), Task List (all roles), Historical Productivity (Managers/Admins), User Management (Admins only).
+- **Navigation:** Streamlined sidebar navigation with role-based menu items. Team Productivity is the default landing page and first menu item. Menu order: Team Productivity (Managers/Admins), Task List (all roles), Historical Productivity (Managers/Admins), Analytics (Managers/Admins), User Management (Admins only).
+- **Analytics & Reporting Dashboard (Phase 1):** Comprehensive business intelligence page at `/analytics` for Managers and System Administrators featuring:
+  - **Summary Metrics:** Four KPI cards displaying Total Revenue (30-day), Total Denials, Active Team Members, and AR 90+ Days percentage
+  - **Revenue Trends:** Line chart visualizing daily revenue collection over 30-day period with per-claim averages
+  - **Top Denial Codes:** Table showing most frequent denial codes with count, total balance at risk, and average balance per denial
+  - **AR Aging Distribution:** Bar chart displaying outstanding balances across aging buckets (0-30, 31-60, 61-90, 90+ days)
+  - **Team Performance Scorecard:** Table showing individual team member metrics (claims processed, revenue collected, pending claims, avg handling time, accuracy rate)
+  - All visualizations use Recharts library with responsive design and formatted tooltips
 - **Work Group Assignment & Filtering:** Introduced a 3-dimensional filtering system (Line of Business, Criteria, Team) on the Task Management page with multi-select popovers, query parameter persistence, and real-time updates. Claim Detail Modal updated for single-select Work Group assignment.
 - **Team Management:** A dedicated page at `/team-management` for System Administrators to view and manage users within their tenant, including role editing with client-side and server-side access control.
 - **AR Tasks Modal Redesign:**
@@ -95,6 +102,11 @@ Preferred communication style: Simple, everyday language.
     - `POST /api/team/targets` - Set daily targets for team members
     - `GET /api/team/metrics` - Get productivity metrics for a date
     - `POST /api/team/generate-tasks` - Bulk generate tasks to fulfill daily targets for all team members
+  - Analytics & Reporting:
+    - `GET /api/analytics/revenue-trends?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD` - Daily revenue trends with per-claim averages
+    - `GET /api/analytics/denial-codes?limit=10` - Top denial codes with counts, total balances, and averages (uses CTE with JSONB type checking)
+    - `GET /api/analytics/team-performance?date=YYYY-MM-DD` - Team scorecard with claims, revenue, pending, handling time, and accuracy
+    - `GET /api/analytics/ar-aging` - AR aging distribution across buckets (0-30, 31-60, 61-90, 90+ days)
 - **Database Schema Updates:** 
   - Added `line_of_business`, `criteria`, and `team` columns to the Claims table for Work Group assignment
   - Created `team_assignments`, `daily_targets`, and `productivity_metrics` tables for team productivity management

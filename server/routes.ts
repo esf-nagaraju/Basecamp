@@ -1055,6 +1055,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Analytics endpoints
+  app.get('/api/analytics/revenue-trends', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId, userId } = await getUserContext(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR)) {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      const startDateStr = req.query.startDate;
+      const endDateStr = req.query.endDate;
+
+      if (!startDateStr || !endDateStr) {
+        return res.status(400).json({ message: "startDate and endDate are required" });
+      }
+
+      const startDate = new Date(startDateStr);
+      const endDate = new Date(endDateStr);
+
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return res.status(400).json({ message: "Invalid date format" });
+      }
+
+      const trends = await storage.getRevenueTrends(tenantId, startDate, endDate);
+      res.json(trends);
+    } catch (error) {
+      console.error("Error fetching revenue trends:", error);
+      res.status(500).json({ message: "Failed to fetch revenue trends" });
+    }
+  });
+
+  app.get('/api/analytics/denial-codes', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId, userId } = await getUserContext(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR)) {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 10;
+      const denialCodes = await storage.getTopDenialCodes(tenantId, limit);
+      res.json(denialCodes);
+    } catch (error) {
+      console.error("Error fetching denial codes:", error);
+      res.status(500).json({ message: "Failed to fetch denial codes" });
+    }
+  });
+
+  app.get('/api/analytics/team-performance', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId, userId } = await getUserContext(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR)) {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      const metricDate = req.query.date as string || new Date().toISOString().split('T')[0];
+      const scorecard = await storage.getTeamPerformanceScorecard(tenantId, metricDate);
+      res.json(scorecard);
+    } catch (error) {
+      console.error("Error fetching team performance:", error);
+      res.status(500).json({ message: "Failed to fetch team performance" });
+    }
+  });
+
+  app.get('/api/analytics/ar-aging', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId, userId } = await getUserContext(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR)) {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      const aging = await storage.getARAgingBuckets(tenantId);
+      res.json(aging);
+    } catch (error) {
+      console.error("Error fetching AR aging:", error);
+      res.status(500).json({ message: "Failed to fetch AR aging" });
+    }
+  });
+
   app.get('/api/team/members', isAuthenticated, async (req: any, res) => {
     try {
       const { tenantId, userId } = await getUserContext(req);

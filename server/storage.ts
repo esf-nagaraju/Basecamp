@@ -1687,6 +1687,135 @@ export class DbStorage implements IStorage {
       return result[0];
     }
   }
+
+  // Analytics methods
+  async getRevenueTrends(tenantId: string, startDate: Date, endDate: Date) {
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+
+    const results = await db
+      .select({
+        date: productivityMetrics.metricDate,
+        totalRevenue: sql<number>`SUM(${productivityMetrics.revenueCollected})`,
+        totalClaims: sql<number>`SUM(${productivityMetrics.claimsProcessedToday})`,
+        avgRevenuePerClaim: sql<number>`ROUND(SUM(${productivityMetrics.revenueCollected}) / NULLIF(SUM(${productivityMetrics.claimsProcessedToday}), 0), 2)`,
+      })
+      .from(productivityMetrics)
+      .where(
+        and(
+          eq(productivityMetrics.tenantId, tenantId),
+          gte(productivityMetrics.metricDate, startDateStr),
+          lte(productivityMetrics.metricDate, endDateStr)
+        )
+      )
+      .groupBy(productivityMetrics.metricDate)
+      .orderBy(productivityMetrics.metricDate);
+
+    return results.map(row => ({
+      date: row.date,
+      revenue: Number(row.totalRevenue) || 0,
+      claims: Number(row.totalClaims) || 0,
+      avgPerClaim: Number(row.avgRevenuePerClaim) || 0,
+    }));
+  }
+
+  async getTopDenialCodes(tenantId: string, limit: number = 10) {
+    // Use CTE to first filter valid arrays, then unnest
+    // Remove jsonb_array_length check to avoid scalar errors
+    const results = await db.execute(sql`
+      WITH valid_denials AS (
+        SELECT denial_codes, balance_due
+        FROM claims
+        WHERE tenant_id = ${tenantId}
+          AND denial_codes IS NOT NULL 
+          AND jsonb_typeof(denial_codes) = 'array'
+      )
+      SELECT 
+        jsonb_array_elements_text(denial_codes) as denial_code,
+        COUNT(*) as count,
+        SUM(balance_due) as total_balance
+      FROM valid_denials
+      GROUP BY jsonb_array_elements_text(denial_codes)
+      ORDER BY COUNT(*) DESC
+      LIMIT ${limit}
+    `);
+
+    return results.rows.map((row: any) => ({
+      code: row.denial_code || 'Unknown',
+      count: Number(row.count) || 0,
+      totalBalance: Number(row.total_balance) || 0,
+      avgBalance: (Number(row.total_balance) / Number(row.count)) || 0,
+    }));
+  }
+
+  async getTeamPerformanceScorecard(tenantId: string, metricDate: string) {
+    const results = await db
+      .select({
+        userId: productivityMetrics.userId,
+        userName: users.fullName,
+        userEmail: users.email,
+        claimsProcessed: productivityMetrics.claimsProcessedToday,
+        revenueCollected: productivityMetrics.revenueCollected,
+        claimsPending: productivityMetrics.claimsPending,
+        handlingTime: productivityMetrics.avgHandlingTimeMinutes,
+        accuracyRate: productivityMetrics.accuracyRate,
+      })
+      .from(productivityMetrics)
+      .leftJoin(users, eq(productivityMetrics.userId, users.id))
+      .where(
+        and(
+          eq(productivityMetrics.tenantId, tenantId),
+          eq(productivityMetrics.metricDate, metricDate)
+        )
+      )
+      .orderBy(desc(productivityMetrics.claimsProcessedToday));
+
+    return results.map(row => ({
+      userId: row.userId,
+      userName: row.userName || row.userEmail || 'Unknown',
+      claimsProcessed: Number(row.claimsProcessed) || 0,
+      revenue: Number(row.revenueCollected) || 0,
+      pending: Number(row.claimsPending) || 0,
+      avgHandlingTime: Number(row.handlingTime) || 0,
+      accuracyRate: Number(row.accuracyRate) || 0,
+    }));
+  }
+
+  async getARAgingBuckets(tenantId: string) {
+    const results = await db
+      .select({
+        bucket: sql<string>`
+          CASE 
+            WHEN ${claims.invoiceAge} <= 30 THEN '0-30 days'
+            WHEN ${claims.invoiceAge} <= 60 THEN '31-60 days'
+            WHEN ${claims.invoiceAge} <= 90 THEN '61-90 days'
+            ELSE '90+ days'
+          END
+        `,
+        count: sql<number>`COUNT(*)`,
+        totalBalance: sql<number>`SUM(${claims.balanceDue})`,
+      })
+      .from(claims)
+      .where(eq(claims.tenantId, tenantId))
+      .groupBy(sql`
+        CASE 
+          WHEN ${claims.invoiceAge} <= 30 THEN '0-30 days'
+          WHEN ${claims.invoiceAge} <= 60 THEN '31-60 days'
+          WHEN ${claims.invoiceAge} <= 90 THEN '61-90 days'
+          ELSE '90+ days'
+        END
+      `);
+
+    const bucketOrder = ['0-30 days', '31-60 days', '61-90 days', '90+ days'];
+    return bucketOrder.map(bucketName => {
+      const found = results.find(r => r.bucket === bucketName);
+      return {
+        bucket: bucketName,
+        count: found ? Number(found.count) : 0,
+        balance: found ? Number(found.totalBalance) : 0,
+      };
+    });
+  }
 }
 
 export const storage = new DbStorage();
