@@ -26,17 +26,11 @@ function Router() {
         <Route path="/" component={Landing} />
       ) : (
         <>
-          <Route path="/" component={Dashboard} />
-          <Route path="/worklist" component={Dashboard} />
-          <Route path="/team" component={Dashboard} />
-          <Route path="/analytics" component={Dashboard} />
-          <Route path="/claims" component={Dashboard} />
-          <Route path="/denials" component={Dashboard} />
+          <Route path="/" component={TaskManagement} />
           <Route path="/task-management" component={TaskManagement} />
           <Route path="/productivity" component={Productivity} />
           <Route path="/team-productivity" component={TeamProductivity} />
           <Route path="/team-management" component={TeamManagement} />
-          <Route path="/settings" component={Dashboard} />
         </>
       )}
       <Route component={NotFound} />

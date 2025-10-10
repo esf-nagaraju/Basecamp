@@ -30,24 +30,6 @@ import { USER_ROLES } from "@shared/schema";
 
 const menuItems = [
   {
-    title: "Dashboard",
-    url: "/",
-    icon: LayoutDashboard,
-    roles: [USER_ROLES.RCM_SPECIALIST, USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR, USER_ROLES.CLIENT_USER, USER_ROLES.AUDITOR],
-  },
-  {
-    title: "My Worklist",
-    url: "/worklist",
-    icon: ClipboardList,
-    roles: [USER_ROLES.RCM_SPECIALIST],
-  },
-  {
-    title: "Analytics",
-    url: "/analytics",
-    icon: BarChart3,
-    roles: [USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR, USER_ROLES.CLIENT_USER, USER_ROLES.AUDITOR],
-  },
-  {
     title: "Task List",
     url: "/task-management",
     icon: Upload,
@@ -69,12 +51,6 @@ const menuItems = [
     title: "User Management",
     url: "/team-management",
     icon: UserCog,
-    roles: [USER_ROLES.SYSTEM_ADMINISTRATOR],
-  },
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
     roles: [USER_ROLES.SYSTEM_ADMINISTRATOR],
   },
 ];
