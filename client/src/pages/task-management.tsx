@@ -1202,17 +1202,6 @@ export default function TaskManagement() {
                       data-testid="input-invoice-age-bucket"
                     />
                   </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Follow Up Days</label>
-                    <Input
-                      type="number"
-                      value={currentTaskData.followUpDays?.toString() || ''}
-                      disabled
-                      className="mt-1 bg-muted"
-                      data-testid="input-follow-up-days"
-                    />
-                  </div>
                 </div>
               </div>
 
@@ -1463,6 +1452,27 @@ export default function TaskManagement() {
               </div>
 
               <div>
+                <label className="text-sm font-medium">Resolution/Action Taken</label>
+                <Select
+                  value={currentTaskData.resolutionAction || ''}
+                  onValueChange={(value) => {
+                    setLocalTaskChanges(prev => ({ ...prev, resolutionAction: value }));
+                  }}
+                >
+                  <SelectTrigger className="mt-1" data-testid="select-resolution-action">
+                    <SelectValue placeholder="Select resolution action" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(metadata?.resolutionActions || [])
+                      .filter(action => action && action.trim() !== '')
+                      .map(action => (
+                        <SelectItem key={action} value={action}>{action}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
                 <label className="text-sm font-medium">Root Cause Category</label>
                 <Select
                   value={currentTaskData.rootCauseCategory || ''}
@@ -1505,27 +1515,6 @@ export default function TaskManagement() {
                     ) : (
                       <SelectItem value="_none" disabled>No details available</SelectItem>
                     )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Resolution/Action Taken</label>
-                <Select
-                  value={currentTaskData.resolutionAction || ''}
-                  onValueChange={(value) => {
-                    setLocalTaskChanges(prev => ({ ...prev, resolutionAction: value }));
-                  }}
-                >
-                  <SelectTrigger className="mt-1" data-testid="select-resolution-action">
-                    <SelectValue placeholder="Select resolution action" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(metadata?.resolutionActions || [])
-                      .filter(action => action && action.trim() !== '')
-                      .map(action => (
-                        <SelectItem key={action} value={action}>{action}</SelectItem>
-                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1593,6 +1582,17 @@ export default function TaskManagement() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Follow Up Days</label>
+                <Input
+                  type="number"
+                  value={currentTaskData.followUpDays?.toString() || ''}
+                  disabled
+                  className="mt-1 bg-muted"
+                  data-testid="input-follow-up-days"
+                />
               </div>
 
               <div>
