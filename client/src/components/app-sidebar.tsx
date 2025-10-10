@@ -30,6 +30,12 @@ import { USER_ROLES } from "@shared/schema";
 
 const menuItems = [
   {
+    title: "Team Productivity",
+    url: "/team-productivity",
+    icon: Users,
+    roles: [USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
+  },
+  {
     title: "Task List",
     url: "/task-management",
     icon: Upload,
@@ -39,12 +45,6 @@ const menuItems = [
     title: "Historical Productivity",
     url: "/productivity",
     icon: TrendingUp,
-    roles: [USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
-  },
-  {
-    title: "Team Productivity",
-    url: "/team-productivity",
-    icon: Users,
     roles: [USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
   },
   {
