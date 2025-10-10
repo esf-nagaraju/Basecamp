@@ -497,6 +497,12 @@ export default function TaskManagement() {
     .filter(p => p && p.trim() !== '')
     .sort();
 
+  const assignedUserIds = Array.from(new Set(tasks.map(t => t.assignedTo).filter(id => id !== null)));
+  const selectedUserIds = new Set(selectedAssignedUsers);
+  const usersWithTasks = (users || [])
+    .filter(user => assignedUserIds.includes(user.id) || selectedUserIds.has(user.id))
+    .sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`));
+
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -779,7 +785,7 @@ export default function TaskManagement() {
                         {selectedAssignedUsers.length === 0
                           ? "All Team Members"
                           : selectedAssignedUsers.length === 1
-                          ? users?.find(u => u.id === selectedAssignedUsers[0])?.firstName + ' ' + users?.find(u => u.id === selectedAssignedUsers[0])?.lastName
+                          ? usersWithTasks.find(u => u.id === selectedAssignedUsers[0])?.firstName + ' ' + usersWithTasks.find(u => u.id === selectedAssignedUsers[0])?.lastName
                           : `${selectedAssignedUsers.length} selected`}
                       </span>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -790,7 +796,7 @@ export default function TaskManagement() {
                       <CommandInput placeholder="Search..." />
                       <CommandEmpty>No results found.</CommandEmpty>
                       <CommandGroup className="max-h-64 overflow-auto">
-                        {users?.map((user) => (
+                        {usersWithTasks.map((user) => (
                           <CommandItem
                             key={user.id}
                             onSelect={() => {
