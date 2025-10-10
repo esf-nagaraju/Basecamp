@@ -65,7 +65,7 @@ Preferred communication style: Simple, everyday language.
     - Marks tasks as completed with today's date
     - Updates productivity metrics automatically
     - Shows confirmation dialog explaining the automation process
-- **Navigation:** Streamlined sidebar navigation with role-based menu items. Team Productivity is the default landing page and first menu item. Menu order: Team Productivity (Managers/Admins), Task List (all roles), Historical Productivity (Managers/Admins), Analytics (Managers/Admins), User Management (Admins only).
+- **Navigation:** Streamlined sidebar navigation with role-based menu items. Team Productivity is the default landing page and first menu item. Menu order: Team Productivity (Managers/Admins), Task List (all roles), Historical Productivity (Managers/Admins), Analytics (Managers/Admins), User Management (Admins only), Settings (all roles).
 - **Analytics & Reporting Dashboard (Phase 1):** Comprehensive business intelligence page at `/analytics` for Managers and System Administrators featuring:
   - **Summary Metrics:** Four KPI cards displaying Total Revenue (30-day), Total Denials, Active Team Members, and AR 90+ Days percentage
   - **Revenue Trends:** Line chart visualizing daily revenue collection over 30-day period with per-claim averages
@@ -88,6 +88,13 @@ Preferred communication style: Simple, everyday language.
     - Follow Up Days auto-populates when both fields are selected (values: 0, 7, 15, or 28 days)
     - Changing Action Category clears dependent Action/Status and Follow Up Days fields
     - Data sourced from Excel file with 62 unique Category::Status::Days mappings
+- **Settings Page (My Profile):** User preference management page at `/settings` accessible to all roles featuring:
+  - **Personal Information:** Read-only display of user profile (name, email, role)
+  - **Display Preferences:** Theme selection (light/dark), timezone, date format, page density (compact/comfortable/spacious)
+  - **Notification Preferences:** Toggle controls for email notifications, task assignment alerts, daily digest, high-value claim alerts with configurable threshold
+  - Preferences stored in user's JSONB preferences column with one-time hydration on page load to prevent state conflicts
+  - Theme changes apply immediately via ThemeProvider and persist across sessions
+  - All preferences save to database and reload on subsequent visits
 
 ### Technical Implementations
 - **Health Check Endpoints:** Added `/health` and `/api/health` for deployment monitoring, returning 200 OK with `{"status": "ok"}`.
@@ -107,10 +114,14 @@ Preferred communication style: Simple, everyday language.
     - `GET /api/analytics/denial-codes?limit=10` - Top denial codes with counts, total balances, and averages (uses CTE with JSONB type checking)
     - `GET /api/analytics/team-performance?date=YYYY-MM-DD` - Team scorecard with claims, revenue, pending, handling time, and accuracy
     - `GET /api/analytics/ar-aging` - AR aging distribution across buckets (0-30, 31-60, 61-90, 90+ days)
+  - User Settings:
+    - `GET /api/user/profile` - Fetch current user's profile and preferences
+    - `PATCH /api/user/preferences` - Update user preferences (theme, timezone, notifications, etc.)
 - **Database Schema Updates:** 
   - Added `line_of_business`, `criteria`, and `team` columns to the Claims table for Work Group assignment
   - Created `team_assignments`, `daily_targets`, and `productivity_metrics` tables for team productivity management
   - Added `revenue_collected` decimal column to productivity_metrics table for financial tracking
+  - Added `preferences` JSONB column to users table for storing user-specific settings (theme, timezone, notifications, etc.)
 - **Revenue Collected Tracking:**
   - Productivity metrics now track revenue collected alongside claims processed
   - Historical productivity data aggregates total revenue by date
