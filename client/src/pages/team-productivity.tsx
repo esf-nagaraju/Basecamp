@@ -460,7 +460,7 @@ export default function TeamProductivity() {
               <Dialog open={isGenerateDialogOpen} onOpenChange={setIsGenerateDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
-                    variant="default"
+                    variant="outline"
                     data-testid="button-generate-tasks"
                   >
                     Generate Tasks
