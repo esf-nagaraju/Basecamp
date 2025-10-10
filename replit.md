@@ -68,6 +68,12 @@ Preferred communication style: Simple, everyday language.
   - Reorganized Resolution fields (Resolution Category, Root Cause Category, Root Cause Detail, Resolution/Action Taken) to appear directly above Notes for improved workflow
   - Made all database-driven fields read-only in Claim Details, Provider Information, Payor Information, Financial Details, and Additional Information sections to prevent unintended data modification
   - Updated AR Tasks table view to display Risk Score (1-10) with color-coded badges: High risk (8-10, red), Medium risk (4-7, default), Low risk (1-3, secondary)
+  - **Parent-Child Action Workflow:** Implemented hierarchical relationship between Action Category and Action/Status with auto-populated Follow Up Days:
+    - Action Category (parent) offers 3 options: Status check, Payment - To be Posted, Resubmit
+    - Action/Status (child) dynamically filters options based on selected Action Category (40+ statuses for Status check, 2 for Payment - To be Posted, 19 for Resubmit)
+    - Follow Up Days auto-populates when both fields are selected (values: 0, 7, 15, or 28 days)
+    - Changing Action Category clears dependent Action/Status and Follow Up Days fields
+    - Data sourced from Excel file with 62 unique Category::Status::Days mappings
 
 ### Technical Implementations
 - **Health Check Endpoints:** Added `/health` and `/api/health` for deployment monitoring, returning 200 OK with `{"status": "ok"}`.
