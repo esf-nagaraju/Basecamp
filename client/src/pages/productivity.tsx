@@ -260,7 +260,7 @@ export default function Productivity() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card data-testid="card-total-tasks">
           <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tasks Completed</CardTitle>
+            <CardTitle className="text-sm font-medium">Tasks Allocated</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -271,9 +271,9 @@ export default function Productivity() {
               </div>
             ) : (
               <>
-                <div className="text-2xl font-bold" data-testid="text-total-tasks">{totalTasks}</div>
+                <div className="text-2xl font-bold" data-testid="text-total-tasks">{totalTasks.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">
-                  Avg {avgTasksPerDay} per day
+                  Avg {avgTasksPerDay.toLocaleString()} per day
                 </p>
                 <div className="h-12 mt-2">
                   <ResponsiveContainer width="100%" height="100%">
