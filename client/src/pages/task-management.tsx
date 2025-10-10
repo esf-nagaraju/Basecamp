@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, ChevronLeft, ChevronRight, Upload, FileSpreadsheet, X, UserPlus, Check, ChevronsUpDown } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Upload, FileSpreadsheet, X, UserPlus, Check, ChevronsUpDown, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -118,6 +118,79 @@ const TEAMS = [
   "TP Manila"
 ];
 
+function ColumnFilter({ 
+  title, 
+  options, 
+  selectedValues, 
+  onSelectionChange 
+}: { 
+  title: string; 
+  options: string[]; 
+  selectedValues: string[]; 
+  onSelectionChange: (values: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const toggleValue = (value: string) => {
+    if (selectedValues.includes(value)) {
+      onSelectionChange(selectedValues.filter(v => v !== value));
+    } else {
+      onSelectionChange([...selectedValues, value]);
+    }
+  };
+
+  const clearAll = () => {
+    onSelectionChange([]);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 px-2 gap-1"
+          data-testid={`filter-${title.toLowerCase().replace(/\s+/g, "-")}`}
+        >
+          <span>{title}</span>
+          <Filter className={`h-3 w-3 ${selectedValues.length > 0 ? 'text-primary' : ''}`} />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[250px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder={`Search ${title.toLowerCase()}...`} />
+          <CommandEmpty>No results found.</CommandEmpty>
+          <div className="p-2 border-b">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearAll}
+              className="w-full justify-start"
+            >
+              Clear All
+            </Button>
+          </div>
+          <CommandGroup className="max-h-64 overflow-auto">
+            {options.map((option) => (
+              <CommandItem
+                key={option}
+                onSelect={() => toggleValue(option)}
+              >
+                <Checkbox
+                  checked={selectedValues.includes(option)}
+                  onCheckedChange={() => toggleValue(option)}
+                  className="mr-2"
+                />
+                <span>{option}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export default function TaskManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<string>("all");
@@ -125,6 +198,9 @@ export default function TaskManagement() {
   const [selectedLineOfBusiness, setSelectedLineOfBusiness] = useState<string[]>([]);
   const [selectedCriteria, setSelectedCriteria] = useState<string[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<string[]>([]);
+  const [selectedClaimNumbers, setSelectedClaimNumbers] = useState<string[]>([]);
+  const [selectedRiskScores, setSelectedRiskScores] = useState<string[]>([]);
+  const [selectedPayors, setSelectedPayors] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedTask, setSelectedTask] = useState<TaskWithDetails | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -163,7 +239,7 @@ export default function TaskManagement() {
   }, [isModalOpen]);
 
   const { data: tasksData } = useQuery<{ tasks: TaskWithDetails[], totalCount: number }>({
-    queryKey: ['/api/tasks', searchTerm, selectedClient, selectedStatuses, selectedLineOfBusiness, selectedCriteria, selectedTeam, pageSize, currentPage * pageSize],
+    queryKey: ['/api/tasks', searchTerm, selectedClient, selectedStatuses, selectedLineOfBusiness, selectedCriteria, selectedTeam, selectedClaimNumbers, selectedRiskScores, selectedPayors, pageSize, currentPage * pageSize],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
@@ -179,6 +255,15 @@ export default function TaskManagement() {
       }
       if (selectedTeam.length > 0) {
         selectedTeam.forEach(team => params.append('team', team));
+      }
+      if (selectedClaimNumbers.length > 0) {
+        selectedClaimNumbers.forEach(cn => params.append('claimNumber', cn));
+      }
+      if (selectedRiskScores.length > 0) {
+        selectedRiskScores.forEach(rs => params.append('riskScore', rs));
+      }
+      if (selectedPayors.length > 0) {
+        selectedPayors.forEach(p => params.append('payor', p));
       }
       params.append('limit', pageSize.toString());
       params.append('offset', (currentPage * pageSize).toString());
@@ -390,6 +475,18 @@ export default function TaskManagement() {
 
   const uniqueClients = Array.from(new Set(tasks.map(t => t.client)))
     .filter(client => client && client.trim() !== '')
+    .sort();
+
+  const uniqueClaimNumbers = Array.from(new Set(tasks.map(t => t.claimNumber)))
+    .filter(cn => cn && cn.trim() !== '')
+    .sort();
+
+  const uniqueRiskScores = Array.from(new Set(tasks.map(t => t.priority)))
+    .filter(rs => rs && rs.trim() !== '')
+    .sort((a, b) => parseInt(a) - parseInt(b));
+
+  const uniquePayors = Array.from(new Set(tasks.map(t => t.client)))
+    .filter(p => p && p.trim() !== '')
     .sort();
 
   const formatTime = (seconds: number) => {
@@ -708,10 +805,31 @@ export default function TaskManagement() {
                       data-testid="checkbox-select-all"
                     />
                   </TableHead>
-                  <TableHead>Claim Number</TableHead>
-                  <TableHead>Risk Score</TableHead>
+                  <TableHead>
+                    <ColumnFilter
+                      title="Claim Number"
+                      options={uniqueClaimNumbers}
+                      selectedValues={selectedClaimNumbers}
+                      onSelectionChange={setSelectedClaimNumbers}
+                    />
+                  </TableHead>
+                  <TableHead>
+                    <ColumnFilter
+                      title="Risk Score"
+                      options={uniqueRiskScores}
+                      selectedValues={selectedRiskScores}
+                      onSelectionChange={setSelectedRiskScores}
+                    />
+                  </TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Payor</TableHead>
+                  <TableHead>
+                    <ColumnFilter
+                      title="Payor"
+                      options={uniquePayors}
+                      selectedValues={selectedPayors}
+                      onSelectionChange={setSelectedPayors}
+                    />
+                  </TableHead>
                   <TableHead>Assigned To</TableHead>
                   <TableHead>Time Spent</TableHead>
                   <TableHead>Invoice Date</TableHead>

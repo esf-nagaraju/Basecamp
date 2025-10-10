@@ -495,6 +495,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lineOfBusiness: req.query.lineOfBusiness ? (Array.isArray(req.query.lineOfBusiness) ? req.query.lineOfBusiness : [req.query.lineOfBusiness]) : undefined,
         criteria: req.query.criteria ? (Array.isArray(req.query.criteria) ? req.query.criteria : [req.query.criteria]) : undefined,
         team: req.query.team ? (Array.isArray(req.query.team) ? req.query.team : [req.query.team]) : undefined,
+        claimNumber: req.query.claimNumber ? (Array.isArray(req.query.claimNumber) ? req.query.claimNumber : [req.query.claimNumber]) : undefined,
+        riskScore: req.query.riskScore ? (Array.isArray(req.query.riskScore) ? req.query.riskScore : [req.query.riskScore]) : undefined,
+        payor: req.query.payor ? (Array.isArray(req.query.payor) ? req.query.payor : [req.query.payor]) : undefined,
         limit: req.query.limit ? parseInt(req.query.limit as string) : 50,
         offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
       };

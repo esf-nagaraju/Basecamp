@@ -128,6 +128,9 @@ export interface TaskFilters {
   lineOfBusiness?: string | string[];
   criteria?: string | string[];
   team?: string | string[];
+  claimNumber?: string | string[];
+  riskScore?: string | string[];
+  payor?: string | string[];
   limit?: number;
   offset?: number;
 }
@@ -730,6 +733,21 @@ export class DbStorage implements IStorage {
     if (filters.team && filters.team.length > 0) {
       const values = Array.isArray(filters.team) ? filters.team : [filters.team];
       conditions.push(inArray(claims.team, values));
+    }
+
+    if (filters.claimNumber && filters.claimNumber.length > 0) {
+      const values = Array.isArray(filters.claimNumber) ? filters.claimNumber : [filters.claimNumber];
+      conditions.push(inArray(claims.invoiceNumber, values));
+    }
+
+    if (filters.riskScore && filters.riskScore.length > 0) {
+      const values = Array.isArray(filters.riskScore) ? filters.riskScore : [filters.riskScore];
+      conditions.push(inArray(tasks.priority, values));
+    }
+
+    if (filters.payor && filters.payor.length > 0) {
+      const values = Array.isArray(filters.payor) ? filters.payor : [filters.payor];
+      conditions.push(inArray(claims.payorName, values));
     }
 
     const countResult = await db
