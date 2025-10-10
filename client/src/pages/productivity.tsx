@@ -341,7 +341,7 @@ export default function Productivity() {
               </div>
             ) : (
               <>
-                <div className="text-2xl font-bold" data-testid="text-total-claims">{totalClaims}</div>
+                <div className="text-2xl font-bold" data-testid="text-total-claims">{totalClaims.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">
                   Resolved and closed
                 </p>
@@ -376,7 +376,7 @@ export default function Productivity() {
               </div>
             ) : (
               <>
-                <div className="text-2xl font-bold" data-testid="text-total-activities">{totalActivities}</div>
+                <div className="text-2xl font-bold" data-testid="text-total-activities">{totalActivities.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">
                   Team interactions
                 </p>
