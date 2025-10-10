@@ -376,11 +376,12 @@ export class DbStorage implements IStorage {
         id: tenants.id,
         name: tenants.name,
         settings: tenants.settings,
+        isActive: tenants.isActive,
         createdAt: tenants.createdAt,
       })
       .from(userTenants)
       .innerJoin(tenants, eq(userTenants.tenantId, tenants.id))
-      .where(eq(userTenants.userId, userId))
+      .where(and(eq(userTenants.userId, userId), eq(tenants.isActive, true)))
       .orderBy(tenants.name);
     return result;
   }
