@@ -58,6 +58,13 @@ Preferred communication style: Simple, everyday language.
   - Monitor real-time productivity with performance badges (High ≥100%, Medium 80-99%, Low <80%)
   - Search and filter team members by name, employee ID, or email
   - Multi-select team members for bulk assignment and target setting operations
+  - **Bulk Task Generation:** One-click "Generate Tasks" button that automatically creates tasks to fulfill daily targets:
+    - Calculates per-user remaining targets (target - processed) for all team members
+    - Generates tasks distributed proportionally across users who haven't met their targets
+    - Creates one realistic claim per task with all metadata fields populated
+    - Marks tasks as completed with today's date
+    - Updates productivity metrics automatically
+    - Shows confirmation dialog explaining the automation process
 - **Navigation:** Simplified sidebar navigation with role-based menu items including Team Productivity for Managers/Admins.
 - **Work Group Assignment & Filtering:** Introduced a 3-dimensional filtering system (Line of Business, Criteria, Team) on the Task Management page with multi-select popovers, query parameter persistence, and real-time updates. Claim Detail Modal updated for single-select Work Group assignment.
 - **Team Management:** A dedicated page at `/team-management` for System Administrators to view and manage users within their tenant, including role editing with client-side and server-side access control.
@@ -87,6 +94,7 @@ Preferred communication style: Simple, everyday language.
     - `GET /api/team/targets` - Get daily targets for a date
     - `POST /api/team/targets` - Set daily targets for team members
     - `GET /api/team/metrics` - Get productivity metrics for a date
+    - `POST /api/team/generate-tasks` - Bulk generate tasks to fulfill daily targets for all team members
 - **Database Schema Updates:** 
   - Added `line_of_business`, `criteria`, and `team` columns to the Claims table for Work Group assignment
   - Created `team_assignments`, `daily_targets`, and `productivity_metrics` tables for team productivity management
