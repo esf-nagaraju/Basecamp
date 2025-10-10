@@ -34,7 +34,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Target, TrendingUp, Award, Search } from "lucide-react";
+import { Users, Target, TrendingUp, Award, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 interface TeamMember {
   userId: string;
@@ -60,6 +60,9 @@ const formatRole = (role: string): string => {
   return roleMap[role] || role;
 };
 
+type SortColumn = 'name' | 'employeeId';
+type SortDirection = 'asc' | 'desc' | null;
+
 export default function TeamProductivity() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -70,8 +73,10 @@ export default function TeamProductivity() {
   const [assignRegion, setAssignRegion] = useState("");
   const [assignPayer, setAssignPayer] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
-  const { data: members = [], isLoading } = useQuery<TeamMember[]>({
+  const { data: fetchedMembers = [], isLoading } = useQuery<TeamMember[]>({
     queryKey: ['/api/team/members', searchQuery],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -81,6 +86,52 @@ export default function TeamProductivity() {
       return response.json();
     },
     enabled: !!user,
+  });
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        setSortColumn(null);
+        setSortDirection(null);
+      }
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (column: SortColumn) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="ml-2 h-4 w-4" />;
+    }
+    if (sortDirection === 'asc') {
+      return <ArrowUp className="ml-2 h-4 w-4" />;
+    }
+    return <ArrowDown className="ml-2 h-4 w-4" />;
+  };
+
+  const members = [...fetchedMembers].sort((a, b) => {
+    if (!sortColumn || !sortDirection) return 0;
+
+    let aValue: string | null = null;
+    let bValue: string | null = null;
+
+    if (sortColumn === 'name') {
+      aValue = a.employeeName;
+      bValue = b.employeeName;
+    } else if (sortColumn === 'employeeId') {
+      aValue = a.employeeId;
+      bValue = b.employeeId;
+    }
+
+    if (aValue === null && bValue === null) return 0;
+    if (aValue === null) return 1;
+    if (bValue === null) return -1;
+
+    const comparison = aValue.localeCompare(bValue);
+    return sortDirection === 'asc' ? comparison : -comparison;
   });
 
   const assignMutation = useMutation({
@@ -402,8 +453,28 @@ export default function TeamProductivity() {
                         data-testid="checkbox-select-all"
                       />
                     </TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Employee ID</TableHead>
+                    <TableHead>
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleSort('name')}
+                        className="h-8 px-2 hover-elevate"
+                        data-testid="button-sort-name"
+                      >
+                        Name
+                        {getSortIcon('name')}
+                      </Button>
+                    </TableHead>
+                    <TableHead>
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleSort('employeeId')}
+                        className="h-8 px-2 hover-elevate"
+                        data-testid="button-sort-employee-id"
+                      >
+                        Employee ID
+                        {getSortIcon('employeeId')}
+                      </Button>
+                    </TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Region</TableHead>
                     <TableHead>Payer</TableHead>
