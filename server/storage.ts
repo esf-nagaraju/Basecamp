@@ -67,6 +67,7 @@ export interface IStorage {
   getTaskWithDetails(id: string, tenantId: string): Promise<TaskWithDetails | undefined>;
   createTask(task: InsertTask): Promise<Task>;
   bulkCreateTasks(tasks: InsertTask[]): Promise<Task[]>;
+  generateTasksForTargets(tenantId: string, targetDate: string): Promise<{ tasksCreated: number; claimsCreated: number }>;
   updateTask(id: string, tenantId: string, updates: Partial<InsertTask>): Promise<Task | undefined>;
   bulkAssignTasks(taskIds: string[], tenantId: string, assignedTo: string | null): Promise<number>;
   startTaskTimer(id: string, tenantId: string): Promise<Task | undefined>;
@@ -665,6 +666,176 @@ export class DbStorage implements IStorage {
     }
     
     return allResults;
+  }
+
+  async generateTasksForTargets(tenantId: string, targetDate: string): Promise<{ tasksCreated: number; claimsCreated: number }> {
+    // Get targets and productivity metrics
+    const targets = await this.getDailyTargets(tenantId, targetDate);
+    const productivityMetrics = await this.getTeamProductivityMetrics(tenantId, targetDate);
+    
+    if (targets.length === 0) {
+      return { tasksCreated: 0, claimsCreated: 0 };
+    }
+    
+    // Build distribution based on per-user remaining targets
+    // Iterate over targets to ensure we include ALL users with targets (even inactive ones)
+    const processedMap = new Map(productivityMetrics.map(m => [m.userId, m.claimsProcessedToday || 0]));
+    
+    const distribution: Array<{ userId: string; count: number }> = [];
+    let tasksToCreate = 0;
+    
+    for (const target of targets) {
+      const processed = processedMap.get(target.userId) || 0;
+      const remaining = Math.max(0, target.claimTarget - processed);
+      if (remaining > 0) {
+        distribution.push({ userId: target.userId, count: remaining });
+        tasksToCreate += remaining;
+      }
+    }
+    
+    // Exit early if no tasks needed (all users at or above target)
+    if (tasksToCreate <= 0) {
+      return { tasksCreated: 0, claimsCreated: 0 };
+    }
+    
+    // Metadata for realistic generation
+    const metadata = {
+      resolutionCategories: ['Claim Approved', 'Claim Denied', 'Claim Pending', 'Information Requested', 'Appeal Filed', 'Payment Received', 'Other'],
+      rootCauseCategories: ['Additional Information Requested', 'Authorization', 'Billing Error', 'Bundling/Inclusive Service', 'Claim is in Process', 'Coding', 'Demographics Issue', 'Eligibility/Benefits', 'No Response', 'Non-Covered', 'NPI/Non Par/Out of Network', 'Paid According to Contract', 'Patient Responsibility', 'Payment Issue', 'Referral', 'Timely Filing'],
+      actionCategories: ['Status check', 'Payment - To be Posted', 'Resubmit'],
+      actionStatuses: {
+        'Status check': ['Appeal: Appeal In Process - 1', 'No Action Taken: Claim In Process', 'Payment to be Posted', 'Write Off: Timely Filing'],
+        'Payment - To be Posted': ['No Action Taken: Payment Posted Prior to Status Check', 'Claim Completed/Settled'],
+        'Resubmit': ['Reprocessing: Coding Related Denial', 'Resubmission: Claim Not on File - All Info Correct', 'Resubmission: Denial - Sent Appeal 1']
+      },
+      followUpDays: {
+        'Status check::Appeal: Appeal In Process - 1': 28,
+        'Status check::No Action Taken: Claim In Process': 28,
+        'Status check::Payment to be Posted': 7,
+        'Status check::Write Off: Timely Filing': 0,
+        'Payment - To be Posted::No Action Taken: Payment Posted Prior to Status Check': 0,
+        'Payment - To be Posted::Claim Completed/Settled': 0,
+        'Resubmit::Reprocessing: Coding Related Denial': 28,
+        'Resubmit::Resubmission: Claim Not on File - All Info Correct': 28,
+        'Resubmit::Resubmission: Denial - Sent Appeal 1': 28
+      },
+      payorNames: ['Medicare', 'Medicaid', 'Blue Cross Blue Shield', 'Aetna', 'United Healthcare', 'Cigna', 'Humana', 'Anthem', 'Tricare', 'Commercial Insurance'],
+      payorTypes: ['Medicare', 'Medicaid', 'Commercial', 'Federal', 'Managed Care'],
+      linesOfBusiness: ['External', 'INR/Medicaid (Offshore)', 'Commercial (Offshore)', 'Commercial (Onshore)', 'Medicare (Onshore)', 'Medicare Advantage (Onshore)'],
+      criteria: ['CPR+', 'Silent Payors, 34 States', 'Permission Needed, Yes, Granted Yes', 'Medicare', 'Commercial'],
+      teams: ['Acuserve', 'Accurio', 'Lincare', 'TP India', 'TP Manila']
+    };
+    
+    // Helper functions for random selection
+    const random = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
+    const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const randomDecimal = (min: number, max: number) => (Math.random() * (max - min) + min).toFixed(2);
+    
+    const claimsToCreate: InsertClaim[] = [];
+    const tasksToCreateList: InsertTask[] = [];
+    
+    // Generate claims and tasks
+    let taskIndex = 0;
+    for (const { userId, count } of distribution) {
+      for (let i = 0; i < count && taskIndex < tasksToCreate; i++, taskIndex++) {
+        const actionCategory = random(metadata.actionCategories);
+        const actionStatus = random(metadata.actionStatuses[actionCategory as keyof typeof metadata.actionStatuses]);
+        const followUpKey = `${actionCategory}::${actionStatus}`;
+        const followUpDays = (metadata.followUpDays as any)[followUpKey] || 7;
+        
+        const invoiceAge = randomInt(30, 365);
+        const invoiceAgeBucket = invoiceAge < 30 ? '0-30' : invoiceAge < 60 ? '31-60' : invoiceAge < 90 ? '61-90' : '91+';
+        
+        const claim: InsertClaim = {
+          tenantId,
+          customerId: `CUST-${randomInt(10000, 99999)}`,
+          customerName: `Patient ${randomInt(1000, 9999)}`,
+          dob: `19${randomInt(40, 90)}-${String(randomInt(1, 12)).padStart(2, '0')}-${String(randomInt(1, 28)).padStart(2, '0')}`,
+          insuredId: `INS-${randomInt(100000, 999999)}`,
+          payorGroup: random(['Group A', 'Group B', 'Group C']),
+          payorCode: `PC${randomInt(100, 999)}`,
+          payorName: random(metadata.payorNames),
+          payorType: random(metadata.payorTypes),
+          listPrice: randomDecimal(200, 15000),
+          allowedAmount: randomDecimal(150, 12000),
+          dueAmount: randomDecimal(100, 10000),
+          appliedAmount: randomDecimal(50, 8000),
+          balanceDue: randomDecimal(100, 10000),
+          invoiceNumber: `INV-${Date.now()}-${taskIndex}`,
+          invoiceDate: targetDate,
+          invoiceAge,
+          invoiceAgeBucket,
+          dateOfService: targetDate,
+          dosAgeBucket: invoiceAgeBucket,
+          hcpcCode: `${randomInt(10000, 99999)}`,
+          status: actionStatus,
+          slaStatus: random(['green', 'yellow', 'red']),
+          denialCodes: [],
+          assignedTo: userId,
+          priorityScore: randomInt(1, 10),
+          lineOfBusiness: random(metadata.linesOfBusiness),
+          criteria: random(metadata.criteria),
+          team: random(metadata.teams),
+          actionCategory,
+          billingProvider: `Provider ${randomInt(1, 50)}`,
+          dateClaimSent: targetDate,
+          financialClass: random(['Commercial', 'Medicare', 'Medicaid', 'Self-Pay']),
+          followUpDays,
+          grossAmount: randomDecimal(200, 15000),
+          location: random(['Location A', 'Location B', 'Location C', 'Location D']),
+          payment: randomDecimal(100, 10000),
+          payorId: `PID-${randomInt(1000, 9999)}`,
+          renderingProvider: `Dr. ${randomInt(1, 100)}`,
+          servicingLocation: random(['Facility 1', 'Facility 2', 'Facility 3'])
+        };
+        
+        claimsToCreate.push(claim);
+      }
+    }
+    
+    // Bulk create claims
+    const createdClaims = await this.bulkCreateClaims(claimsToCreate);
+    
+    // Create tasks for each claim
+    let claimIdx = 0;
+    for (const { userId, count } of distribution) {
+      for (let i = 0; i < count && claimIdx < createdClaims.length; i++, claimIdx++) {
+        const claim = createdClaims[claimIdx];
+        const resolutionCategory = random(metadata.resolutionCategories);
+        const rootCauseCategory = random(metadata.rootCauseCategories);
+        
+        tasksToCreateList.push({
+          tenantId,
+          claimId: claim.id!,
+          assignedTo: userId,
+          title: `Review Claim ${claim.invoiceNumber}`,
+          description: `Follow up on claim ${claim.invoiceNumber} for ${claim.customerName}`,
+          priority: String(claim.priorityScore),
+          status: 'completed',
+          resolutionCategory,
+          rootCauseCategory,
+          resolutionAction: random(['Submitted additional documentation', 'Corrected coding', 'Resubmitted claim', 'Filed appeal']),
+          completedAt: new Date(targetDate)
+        });
+      }
+    }
+    
+    // Bulk create tasks
+    const createdTasks = await this.bulkCreateTasks(tasksToCreateList);
+    
+    // Update productivity metrics
+    for (const { userId, count } of distribution) {
+      const existing = await this.getProductivityMetricsForDate(userId, targetDate, tenantId);
+      const newClaimsProcessed = (existing?.claimsProcessedToday || 0) + count;
+      const newClaimsPending = Math.max(0, (existing?.claimsPending || 0) - count);
+      
+      await this.updateProductivityMetrics(userId, targetDate, tenantId, {
+        claimsProcessedToday: newClaimsProcessed,
+        claimsPending: newClaimsPending
+      });
+    }
+    
+    return { tasksCreated: createdTasks.length, claimsCreated: createdClaims.length };
   }
 
   async updateTask(

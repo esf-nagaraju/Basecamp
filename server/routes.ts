@@ -1185,6 +1185,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/team/generate-tasks', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId, userId } = await getUserContext(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR)) {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      const targetDate = req.body.targetDate || new Date().toISOString().split('T')[0];
+      const result = await storage.generateTasksForTargets(tenantId, targetDate);
+      
+      res.json({
+        success: true,
+        tasksCreated: result.tasksCreated,
+        claimsCreated: result.claimsCreated,
+        message: `Generated ${result.tasksCreated} tasks and ${result.claimsCreated} claims for ${targetDate}`
+      });
+    } catch (error) {
+      console.error("Error generating tasks for targets:", error);
+      res.status(500).json({ message: "Failed to generate tasks" });
+    }
+  });
+
   app.post('/api/system/generate-tasks', isAuthenticated, async (req: any, res) => {
     try {
       const { tenantId } = await getUserContext(req);
