@@ -16,6 +16,7 @@ import Productivity from "@/pages/productivity";
 import TeamProductivity from "@/pages/team-productivity";
 import TeamManagement from "@/pages/team-management";
 import Analytics from "@/pages/analytics";
+import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -33,6 +34,7 @@ function Router() {
           <Route path="/team-productivity" component={TeamProductivity} />
           <Route path="/analytics" component={Analytics} />
           <Route path="/team-management" component={TeamManagement} />
+          <Route path="/settings" component={Settings} />
         </>
       )}
       <Route component={NotFound} />

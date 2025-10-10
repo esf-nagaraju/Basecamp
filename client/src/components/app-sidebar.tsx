@@ -59,6 +59,12 @@ const menuItems = [
     icon: UserCog,
     roles: [USER_ROLES.SYSTEM_ADMINISTRATOR],
   },
+  {
+    title: "Settings",
+    url: "/settings",
+    icon: Settings,
+    roles: [USER_ROLES.RCM_SPECIALIST, USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR, USER_ROLES.CLIENT_USER, USER_ROLES.AUDITOR],
+  },
 ];
 
 export function AppSidebar() {
