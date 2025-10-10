@@ -178,8 +178,7 @@ function ColumnFilter({
               >
                 <Checkbox
                   checked={selectedValues.includes(option)}
-                  onCheckedChange={() => toggleValue(option)}
-                  className="mr-2"
+                  className="mr-2 pointer-events-none"
                 />
                 <span>{option}</span>
               </CommandItem>
@@ -593,19 +592,6 @@ export default function TaskManagement() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col gap-4">
-            <div className="flex gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search by claim number or client..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                  data-testid="input-search"
-                />
-              </div>
-            </div>
-
             {/* Work Group Filters */}
             <div className="flex gap-4">
               <div className="flex-1">
