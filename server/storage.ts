@@ -291,7 +291,7 @@ export class DbStorage implements IStorage {
       const [newTenant] = await db
         .insert(tenants)
         .values({
-          name: 'Default Healthcare Organization',
+          name: 'Lincare',
           settings: {},
         })
         .returning();
