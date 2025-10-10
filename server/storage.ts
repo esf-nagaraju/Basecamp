@@ -823,16 +823,27 @@ export class DbStorage implements IStorage {
     // Bulk create tasks
     const createdTasks = await this.bulkCreateTasks(tasksToCreateList);
     
-    // Update productivity metrics
+    // Update productivity metrics with revenue
+    let claimStartIdx = 0;
     for (const { userId, count } of distribution) {
       const existing = await this.getProductivityMetricsForDate(userId, targetDate, tenantId);
       const newClaimsProcessed = (existing?.claimsProcessedToday || 0) + count;
       const newClaimsPending = Math.max(0, (existing?.claimsPending || 0) - count);
       
+      // Calculate revenue from claims assigned to this user
+      const userRevenue = createdClaims
+        .slice(claimStartIdx, claimStartIdx + count)
+        .reduce((sum, claim) => sum + (Number(claim.payment) || 0), 0);
+      
+      const newRevenue = (Number(existing?.revenueCollected) || 0) + userRevenue;
+      
       await this.updateProductivityMetrics(userId, targetDate, tenantId, {
         claimsProcessedToday: newClaimsProcessed,
-        claimsPending: newClaimsPending
+        claimsPending: newClaimsPending,
+        revenueCollected: String(newRevenue)
       });
+      
+      claimStartIdx += count;
     }
     
     return { tasksCreated: createdTasks.length, claimsCreated: createdClaims.length };
@@ -1290,6 +1301,7 @@ export class DbStorage implements IStorage {
         claimsPending: productivityMetrics.claimsPending,
         avgHandlingTime: productivityMetrics.avgHandlingTimeMinutes,
         accuracyRate: productivityMetrics.accuracyRate,
+        revenueCollected: productivityMetrics.revenueCollected,
       })
       .from(productivityMetrics)
       .innerJoin(users, eq(productivityMetrics.userId, users.id))
@@ -1307,7 +1319,7 @@ export class DbStorage implements IStorage {
       hoursWorked: row.avgHandlingTime && row.claimsProcessed 
         ? Number((Number(row.avgHandlingTime) * row.claimsProcessed / 60).toFixed(2))
         : 0,
-      revenueCollected: 0,
+      revenueCollected: Number(row.revenueCollected) || 0,
     }));
   }
 
@@ -1324,6 +1336,7 @@ export class DbStorage implements IStorage {
         date: productivityMetrics.metricDate,
         totalClaims: sql<number>`SUM(${productivityMetrics.claimsProcessedToday})`,
         totalPending: sql<number>`SUM(${productivityMetrics.claimsPending})`,
+        totalRevenue: sql<number>`SUM(${productivityMetrics.revenueCollected})`,
         activeUsers: sql<number>`COUNT(DISTINCT ${productivityMetrics.userId})`,
       })
       .from(productivityMetrics)
@@ -1342,7 +1355,7 @@ export class DbStorage implements IStorage {
       totalTasks: Number(row.totalClaims) || 0,
       totalClaims: Number(row.totalClaims) || 0,
       totalActivities: Number(row.totalClaims) || 0,
-      totalRevenue: 0,
+      totalRevenue: Number(row.totalRevenue) || 0,
       activeUsers: Number(row.activeUsers) || 0,
     }));
   }

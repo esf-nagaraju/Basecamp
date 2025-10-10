@@ -337,6 +337,7 @@ export const productivityMetrics = pgTable("productivity_metrics", {
   claimsPending: integer("claims_pending").default(0),
   avgHandlingTimeMinutes: decimal("avg_handling_time_minutes", { precision: 10, scale: 2 }),
   accuracyRate: decimal("accuracy_rate", { precision: 5, scale: 2 }),
+  revenueCollected: decimal("revenue_collected", { precision: 12, scale: 2 }).default("0"),
   
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
   
