@@ -558,7 +558,7 @@ export default function TaskManagement() {
     
     const taskFields = ['priority', 'status', 'progressPercent', 'resolutionCategory', 
                         'rootCauseCategory', 'rootCauseDetail', 'resolutionAction', 'notes', 'assignedTo'];
-    const claimFields = ['actionCategory', 'billingProvider', 'dateClaimSent', 'errorFile', 
+    const claimFields = ['actionCategory', 'accurioActionStatus', 'billingProvider', 'dateClaimSent', 'errorFile', 
                          'financialClass', 'fixedDenial', 'fixedRemarkCode', 'followUpDays', 
                          'grossAmount', 'location', 'maxCreateDate', 'nrcContract', 'payment', 
                          'payorId', 'payorType', 'pfx', 'renderingProvider', 'servicingLocation', 
@@ -1068,28 +1068,12 @@ export default function TaskManagement() {
                 </div>
                 <div>
                   <label className="text-sm font-medium">Risk Score</label>
-                  <Select
+                  <Input
                     value={currentTaskData.priority || ''}
-                    onValueChange={(value) => {
-                      setLocalTaskChanges(prev => ({ ...prev, priority: value }));
-                    }}
-                  >
-                    <SelectTrigger className="mt-1" data-testid="select-priority">
-                      <SelectValue placeholder="Select risk score" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1</SelectItem>
-                      <SelectItem value="2">2</SelectItem>
-                      <SelectItem value="3">3</SelectItem>
-                      <SelectItem value="4">4</SelectItem>
-                      <SelectItem value="5">5</SelectItem>
-                      <SelectItem value="6">6</SelectItem>
-                      <SelectItem value="7">7</SelectItem>
-                      <SelectItem value="8">8</SelectItem>
-                      <SelectItem value="9">9</SelectItem>
-                      <SelectItem value="10">10</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    disabled
+                    className="mt-1 bg-muted"
+                    data-testid="input-priority"
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium">Status</label>
@@ -1184,26 +1168,6 @@ export default function TaskManagement() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Action/Status</label>
-                    <Input
-                      value={currentTaskData.accurioActionStatus || ''}
-                      disabled
-                      className="mt-1 bg-muted"
-                      data-testid="input-accurio-action-status"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Action Category</label>
-                    <Input
-                      value={currentTaskData.actionCategory || ''}
-                      disabled
-                      className="mt-1 bg-muted"
-                      data-testid="input-action-category"
-                    />
-                  </div>
-
                   <div>
                     <label className="text-sm font-medium">Date of Service</label>
                     <Input
@@ -1556,6 +1520,34 @@ export default function TaskManagement() {
                       ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Action/Status</label>
+                  <Input
+                    value={currentTaskData.accurioActionStatus || ''}
+                    onChange={(e) => {
+                      setLocalTaskChanges(prev => ({ ...prev, accurioActionStatus: e.target.value }));
+                    }}
+                    placeholder="Enter action/status"
+                    className="mt-1"
+                    data-testid="input-accurio-action-status"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Action Category</label>
+                  <Input
+                    value={currentTaskData.actionCategory || ''}
+                    onChange={(e) => {
+                      setLocalTaskChanges(prev => ({ ...prev, actionCategory: e.target.value }));
+                    }}
+                    placeholder="Enter action category"
+                    className="mt-1"
+                    data-testid="input-action-category"
+                  />
+                </div>
               </div>
 
               <div>
