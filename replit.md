@@ -45,7 +45,7 @@ Preferred communication style: Simple, everyday language.
 6.  **Sessions Table:** PostgreSQL-backed authentication sessions with TTL-based expiration.
 7.  **Team Assignments Table:** Region and payer assignments for team members with employee IDs.
 8.  **Daily Targets Table:** Daily claim processing targets with historical tracking and change reasons.
-9.  **Productivity Metrics Table:** Real-time productivity tracking including claims processed, pending, handling time, and accuracy rate.
+9.  **Productivity Metrics Table:** Real-time productivity tracking including claims processed, pending, handling time, accuracy rate, and **revenue collected** (decimal precision: 12,2 supporting up to $999,999,999,999.99).
 
 **Data Validation:** Utilizes Zod schemas generated from Drizzle definitions for type-safe data models and API request validation.
 
@@ -98,6 +98,13 @@ Preferred communication style: Simple, everyday language.
 - **Database Schema Updates:** 
   - Added `line_of_business`, `criteria`, and `team` columns to the Claims table for Work Group assignment
   - Created `team_assignments`, `daily_targets`, and `productivity_metrics` tables for team productivity management
+  - Added `revenue_collected` decimal column to productivity_metrics table for financial tracking
+- **Revenue Collected Tracking:**
+  - Productivity metrics now track revenue collected alongside claims processed
+  - Historical productivity data aggregates total revenue by date
+  - Task generation automatically calculates and updates revenue from claim payment values
+  - Revenue data sourced from claims.payment field (decimal precision supports up to $999,999,999,999.99)
+  - Backfilled historical revenue for existing productivity metrics ($8.1M total across 1,643 claims)
 - **Security & Authentication:** 
   - Multi-layer authorization (client-side guard + server-side validation)
   - Tenant isolation with row-level security
