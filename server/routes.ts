@@ -481,6 +481,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/tasks/summary', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tenantId, userId } = await getUserContext(req);
+      const summary = await storage.getTaskSummary(tenantId, userId);
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching task summary:", error);
+      res.status(500).json({ message: "Failed to fetch task summary" });
+    }
+  });
+
   app.get('/api/tasks', isAuthenticated, async (req: any, res) => {
     try {
       const { tenantId } = await getUserContext(req);

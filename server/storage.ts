@@ -71,6 +71,7 @@ export interface IStorage {
   bulkAssignTasks(taskIds: string[], tenantId: string, assignedTo: string | null): Promise<number>;
   startTaskTimer(id: string, tenantId: string): Promise<Task | undefined>;
   stopTaskTimer(id: string, tenantId: string): Promise<Task | undefined>;
+  getTaskSummary(tenantId: string, userId?: string): Promise<TaskSummary>;
   
   createActivityLog(log: InsertActivityLog): Promise<ActivityLog>;
   getActivityLogs(claimId: string, tenantId: string): Promise<ActivityLog[]>;
@@ -133,6 +134,13 @@ export interface TaskFilters {
   payor?: string | string[];
   limit?: number;
   offset?: number;
+}
+
+export interface TaskSummary {
+  totalTasks: number;
+  myTasks: number;
+  pendingTasks: number;
+  completedToday: number;
 }
 
 export interface TaskWithDetails extends Task {
@@ -937,6 +945,56 @@ export class DbStorage implements IStorage {
       .where(and(eq(tasks.id, id), eq(tasks.tenantId, tenantId)))
       .returning();
     return result[0];
+  }
+
+  async getTaskSummary(tenantId: string, userId?: string): Promise<TaskSummary> {
+    const totalTasksQuery = db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(tasks)
+      .where(eq(tasks.tenantId, tenantId));
+
+    const myTasksQuery = userId
+      ? db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(tasks)
+          .where(and(eq(tasks.tenantId, tenantId), eq(tasks.assignedTo, userId)))
+      : Promise.resolve([{ count: 0 }]);
+
+    const pendingTasksQuery = db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(tasks)
+      .where(and(eq(tasks.tenantId, tenantId), eq(tasks.status, 'Pending')));
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const completedTodayQuery = db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.tenantId, tenantId),
+          eq(tasks.status, 'Completed'),
+          sql`${tasks.completedAt} >= ${today}`,
+          sql`${tasks.completedAt} < ${tomorrow}`
+        )
+      );
+
+    const [totalResult, myResult, pendingResult, completedResult] = await Promise.all([
+      totalTasksQuery,
+      myTasksQuery,
+      pendingTasksQuery,
+      completedTodayQuery,
+    ]);
+
+    return {
+      totalTasks: totalResult[0]?.count || 0,
+      myTasks: myResult[0]?.count || 0,
+      pendingTasks: pendingResult[0]?.count || 0,
+      completedToday: completedResult[0]?.count || 0,
+    };
   }
 
   async createActivityLog(log: InsertActivityLog): Promise<ActivityLog> {

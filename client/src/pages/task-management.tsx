@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
@@ -287,6 +288,10 @@ export default function TaskManagement() {
     queryKey: ['/api/users'],
   });
 
+  const { data: taskSummary, isLoading: isSummaryLoading, error: summaryError } = useQuery<{ totalTasks: number; myTasks: number; pendingTasks: number; completedToday: number }>({
+    queryKey: ['/api/tasks/summary'],
+  });
+
   const { data: taskDetail, refetch: refetchTaskDetail } = useQuery<TaskWithDetails>({
     queryKey: ['/api/tasks', selectedTask?.id],
     enabled: !!selectedTask?.id,
@@ -491,21 +496,6 @@ export default function TaskManagement() {
     .filter(p => p && p.trim() !== '')
     .sort();
 
-  const totalTasks = totalCount;
-  const myTasks = tasks.filter(t => t.assignedTo === user?.id).length;
-  const pendingTasks = tasks.filter(t => t.status.toLowerCase() === 'pending').length;
-  
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const completedToday = tasks.filter(t => {
-    if (t.status.toLowerCase() === 'completed' && t.completedAt) {
-      const completedDate = new Date(t.completedAt);
-      completedDate.setHours(0, 0, 0, 0);
-      return completedDate.getTime() === today.getTime();
-    }
-    return false;
-  }).length;
-
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -615,7 +605,13 @@ export default function TaskManagement() {
             <ListTodo className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-total-tasks">{totalTasks}</div>
+            {isSummaryLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : summaryError ? (
+              <div className="text-2xl font-bold text-muted-foreground">--</div>
+            ) : (
+              <div className="text-2xl font-bold" data-testid="text-total-tasks">{taskSummary?.totalTasks ?? 0}</div>
+            )}
           </CardContent>
         </Card>
 
@@ -625,7 +621,13 @@ export default function TaskManagement() {
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-my-tasks">{myTasks}</div>
+            {isSummaryLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : summaryError ? (
+              <div className="text-2xl font-bold text-muted-foreground">--</div>
+            ) : (
+              <div className="text-2xl font-bold" data-testid="text-my-tasks">{taskSummary?.myTasks ?? 0}</div>
+            )}
           </CardContent>
         </Card>
 
@@ -635,7 +637,13 @@ export default function TaskManagement() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-pending-tasks">{pendingTasks}</div>
+            {isSummaryLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : summaryError ? (
+              <div className="text-2xl font-bold text-muted-foreground">--</div>
+            ) : (
+              <div className="text-2xl font-bold" data-testid="text-pending-tasks">{taskSummary?.pendingTasks ?? 0}</div>
+            )}
           </CardContent>
         </Card>
 
@@ -645,7 +653,13 @@ export default function TaskManagement() {
             <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-completed-today">{completedToday}</div>
+            {isSummaryLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : summaryError ? (
+              <div className="text-2xl font-bold text-muted-foreground">--</div>
+            ) : (
+              <div className="text-2xl font-bold" data-testid="text-completed-today">{taskSummary?.completedToday ?? 0}</div>
+            )}
           </CardContent>
         </Card>
       </div>
