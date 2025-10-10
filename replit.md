@@ -104,7 +104,7 @@ Preferred communication style: Simple, everyday language.
   - Historical productivity data aggregates total revenue by date
   - Task generation automatically calculates and updates revenue from claim payment values
   - Revenue data sourced from claims.payment field (decimal precision supports up to $999,999,999,999.99)
-  - **Historical Revenue Backfill:** Applied random realistic revenue values ($3,000-$8,000 per claim range) to 9,345 historical productivity metrics records (dates before 2025-10-10), resulting in daily totals of $27M-$30M with per-claim averages of $5,200-$5,700
+  - **Historical Revenue Backfill:** Applied random realistic revenue values ($300-$800 per claim range) to 9,345 historical productivity metrics records (dates before 2025-10-10), resulting in daily totals of $2.7M-$3.1M with per-claim averages of $520-$570
 - **Security & Authentication:** 
   - Multi-layer authorization (client-side guard + server-side validation)
   - Tenant isolation with row-level security
