@@ -1,10 +1,22 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { MoreVertical, Shield, Users, Lock } from "lucide-react";
+import { MoreVertical, Shield, Users, Lock, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -60,21 +72,43 @@ const ROLE_COLORS: Record<string, string> = {
   auditor: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
 };
 
+const addUserSchema = z.object({
+  firstName: z.string().min(1, "First name is required").trim(),
+  lastName: z.string().min(1, "Last name is required").trim(),
+  email: z.string().email("Invalid email format").trim().toLowerCase(),
+  role: z.enum(['rcm_specialist', 'manager', 'system_administrator', 'client_user', 'auditor']),
+  employeeId: z.string().optional(),
+});
+
+type AddUserFormData = z.infer<typeof addUserSchema>;
+
 export default function TeamManagement() {
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>('');
+  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
 
-  // Check if user is System Administrator
-  if (currentUser && currentUser.role !== 'system_administrator') {
+  const addUserForm = useForm<AddUserFormData>({
+    resolver: zodResolver(addUserSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      role: 'rcm_specialist',
+      employeeId: '',
+    },
+  });
+
+  // Check if user is System Administrator or Manager
+  if (currentUser && currentUser.role !== 'system_administrator' && currentUser.role !== 'manager') {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <Lock className="h-16 w-16 text-muted-foreground" />
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
           <p className="text-muted-foreground">
-            Only System Administrators can access User Management
+            Only System Administrators and Managers can access User Management
           </p>
         </div>
       </div>
@@ -106,6 +140,28 @@ export default function TeamManagement() {
     },
   });
 
+  const addUserMutation = useMutation({
+    mutationFn: async (userData: AddUserFormData) => {
+      return apiRequest('POST', '/api/users', userData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      toast({
+        title: "User added",
+        description: "New user has been added successfully",
+      });
+      setIsAddUserDialogOpen(false);
+      addUserForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add user",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEditRole = (user: User) => {
     setEditingUser(user);
     setSelectedRole(user.role);
@@ -115,6 +171,29 @@ export default function TeamManagement() {
     if (editingUser && selectedRole) {
       updateRoleMutation.mutate({ userId: editingUser.id, role: selectedRole });
     }
+  };
+
+  const handleAddUser = (data: AddUserFormData) => {
+    addUserMutation.mutate(data);
+  };
+
+  // Get available roles based on current user's role
+  const getAvailableRoles = () => {
+    if (currentUser?.role === 'system_administrator') {
+      return [
+        { value: 'rcm_specialist', label: 'RCM Specialist' },
+        { value: 'manager', label: 'Manager' },
+        { value: 'system_administrator', label: 'System Administrator' },
+        { value: 'client_user', label: 'Client User' },
+        { value: 'auditor', label: 'Auditor' },
+      ];
+    }
+    // Managers can only create non-elevated roles
+    return [
+      { value: 'rcm_specialist', label: 'RCM Specialist' },
+      { value: 'client_user', label: 'Client User' },
+      { value: 'auditor', label: 'Auditor' },
+    ];
   };
 
   const getInitials = (user: User) => {
@@ -147,14 +226,23 @@ export default function TeamManagement() {
 
   return (
     <div className="container mx-auto py-6 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="text-team-management-title">
-          <Users className="h-8 w-8" />
-          Team Management
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your team members and their account permissions here
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="text-team-management-title">
+            <Users className="h-8 w-8" />
+            Team Management
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Manage your team members and their account permissions here
+          </p>
+        </div>
+        <Button 
+          onClick={() => setIsAddUserDialogOpen(true)}
+          data-testid="button-add-user"
+        >
+          <UserPlus className="h-4 w-4 mr-2" />
+          Add User
+        </Button>
       </div>
 
       {/* Admin Users Section */}
@@ -373,6 +461,144 @@ export default function TeamManagement() {
               {updateRoleMutation.isPending ? 'Saving...' : 'Save changes'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add User Dialog */}
+      <Dialog open={isAddUserDialogOpen} onOpenChange={(open) => {
+        setIsAddUserDialogOpen(open);
+        if (!open) addUserForm.reset();
+      }}>
+        <DialogContent data-testid="dialog-add-user">
+          <DialogHeader>
+            <DialogTitle>Add new user</DialogTitle>
+            <DialogDescription>
+              Create a new user account for your organization
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...addUserForm}>
+            <form onSubmit={addUserForm.handleSubmit(handleAddUser)} className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={addUserForm.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          placeholder="John" 
+                          data-testid="input-first-name"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={addUserForm.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          placeholder="Doe" 
+                          data-testid="input-last-name"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={addUserForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email *</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        type="email" 
+                        placeholder="john.doe@example.com" 
+                        data-testid="input-email"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={addUserForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-new-user-role">
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {getAvailableRoles().map((role) => (
+                          <SelectItem 
+                            key={role.value} 
+                            value={role.value}
+                            data-testid={`option-new-${role.value.replace('_', '-')}`}
+                          >
+                            {role.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={addUserForm.control}
+                name="employeeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Employee ID (Optional)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="EMP-12345" 
+                        data-testid="input-employee-id"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  onClick={() => {
+                    setIsAddUserDialogOpen(false);
+                    addUserForm.reset();
+                  }}
+                  data-testid="button-cancel-add-user"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={addUserMutation.isPending}
+                  data-testid="button-save-add-user"
+                >
+                  {addUserMutation.isPending ? 'Adding...' : 'Add User'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

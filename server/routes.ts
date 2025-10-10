@@ -189,8 +189,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { userId, tenantId } = await getUserContext(req);
       const user = await storage.getUser(userId);
       
-      if (!user || user.role !== 'system_administrator') {
-        return res.status(403).json({ message: "Only System Administrators can access user management" });
+      if (!user || (user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR && user.role !== USER_ROLES.MANAGER)) {
+        return res.status(403).json({ message: "Only System Administrators and Managers can access user management" });
       }
       
       const users = await storage.getUsers(tenantId);
@@ -200,6 +200,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.post('/api/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const { userId, tenantId } = await getUserContext(req);
+      const user = await storage.getUser(userId);
+      
+      // Allow both Managers and System Administrators to add users
+      if (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR)) {
+        return res.status(403).json({ message: "Only Managers and System Administrators can add users" });
+      }
+
+      const { firstName, lastName, email, role, employeeId } = req.body;
+
+      // Validation using Zod
+      const createUserSchema = z.object({
+        firstName: z.string().min(1, "First name is required").trim(),
+        lastName: z.string().min(1, "Last name is required").trim(),
+        email: z.string().email("Invalid email format").trim().toLowerCase(),
+        role: z.enum(['rcm_specialist', 'manager', 'system_administrator', 'client_user', 'auditor']),
+        employeeId: z.string().optional(),
+      });
+
+      const validation = createUserSchema.safeParse({ firstName, lastName, email, role, employeeId });
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: validation.error.errors 
+        });
+      }
+
+      const validatedData = validation.data;
+
+      // Restrict managers from creating elevated roles (system_administrator, manager)
+      if (user.role === USER_ROLES.MANAGER) {
+        if (validatedData.role === USER_ROLES.SYSTEM_ADMINISTRATOR || validatedData.role === USER_ROLES.MANAGER) {
+          return res.status(403).json({ message: "Managers cannot create System Administrator or Manager roles" });
+        }
+      }
+
+      // Create the user
+      const newUser = await storage.createUser({
+        tenantId,
+        firstName: validatedData.firstName,
+        lastName: validatedData.lastName,
+        email: validatedData.email,
+        role: validatedData.role,
+        fullName: `${validatedData.firstName} ${validatedData.lastName}`,
+      });
+
+      // If employeeId is provided, create team assignment with error handling
+      if (validatedData.employeeId) {
+        try {
+          await storage.upsertTeamAssignment({
+            userId: newUser.id,
+            tenantId,
+            employeeId: validatedData.employeeId,
+            assignedBy: userId,
+            status: 'active',
+          });
+        } catch (assignmentError) {
+          console.error("Error creating team assignment:", assignmentError);
+          // User is created, but team assignment failed - log and continue
+        }
+      }
+
+      const { password, ...safeUser } = newUser;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
     }
   });
 
