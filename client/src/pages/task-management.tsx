@@ -512,7 +512,6 @@ export default function TaskManagement() {
                   <SelectValue placeholder="Filter by client" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Clients</SelectItem>
                   {uniqueClients.map(client => (
                     <SelectItem key={client} value={client}>{client}</SelectItem>
                   ))}
@@ -526,7 +525,6 @@ export default function TaskManagement() {
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="in progress">In Progress</SelectItem>
                   <SelectItem value="escalated">Escalated</SelectItem>
