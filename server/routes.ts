@@ -690,6 +690,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'Paid According to Contract',
           'Patient Responsibility',
           'Payment Issue',
+          'Referral',
           'Timely Filing'
         ],
         rootCauseDetails: {
@@ -706,7 +707,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             'Authorization Not Obtained'
           ],
           'Billing Error': [
-            'Invalid Submission/Readmission Code',
+            'Invalid Submission/Resubmission Code',
             'Billed to Incorrect Payer ID',
             'Billed to Incorrect Payer',
             'Denied as Duplicate',
@@ -719,8 +720,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'Claim is in Process': [
             'Review with Insurance',
             'Recently Filed',
-            'Approved to pay (Ck# not issued yet)',
-            'Appeal in Process'
+            'Approved to pay (Chk# not issued yet)',
+            'Appeal In Process'
           ],
           'Coding': [
             'Invalid POS',
@@ -776,8 +777,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             'Patient Deductible/Coinsurance/Copay'
           ],
           'Payment Issue': [
-            'Claim Underpaid',
-            'Claim Overpaid Referral'
+            'Claim Underpaid'
+          ],
+          'Referral': [
+            'Missing/Invalid Referral'
           ],
           'Timely Filing': [
             'Claim Billed Untimely'
