@@ -75,6 +75,7 @@ export default function TeamProductivity() {
   const [targetAmount, setTargetAmount] = useState("");
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
 
   const { data: fetchedMembers = [], isLoading } = useQuery<TeamMember[]>({
     queryKey: ['/api/team/members', searchQuery],
@@ -176,6 +177,30 @@ export default function TeamProductivity() {
       toast({
         title: "Error",
         description: error.message || "Failed to update targets",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const generateTasksMutation = useMutation({
+    mutationFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      return await apiRequest('POST', '/api/team/generate-tasks', { targetDate: today });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/team/members'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/claims'] });
+      setIsGenerateDialogOpen(false);
+      toast({
+        title: "Success",
+        description: data.message || `Generated ${data.tasksCreated} tasks and ${data.claimsCreated} claims`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate tasks",
         variant: "destructive",
       });
     },
@@ -426,6 +451,46 @@ export default function TeamProductivity() {
                     </Button>
                     <Button onClick={handleSetTarget} disabled={targetMutation.isPending} data-testid="button-confirm-target">
                       {targetMutation.isPending ? "Setting..." : "Set Target"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isGenerateDialogOpen} onOpenChange={setIsGenerateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="default"
+                    data-testid="button-generate-tasks"
+                  >
+                    Generate Tasks
+                  </Button>
+                </DialogTrigger>
+                <DialogContent data-testid="dialog-generate-tasks">
+                  <DialogHeader>
+                    <DialogTitle>Generate Tasks for Today</DialogTitle>
+                    <DialogDescription>
+                      This will automatically create tasks to reach daily targets for all team members who haven't completed their targets yet. Each task will be created with a claim and marked as completed for today.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="rounded-lg border p-4 bg-muted/50">
+                      <p className="text-sm text-muted-foreground">
+                        <strong>How it works:</strong>
+                      </p>
+                      <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">
+                        <li>Calculates remaining targets for each team member</li>
+                        <li>Creates tasks and claims with realistic data</li>
+                        <li>Marks tasks as completed for today's date</li>
+                        <li>Updates productivity metrics automatically</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsGenerateDialogOpen(false)} data-testid="button-cancel-generate">
+                      Cancel
+                    </Button>
+                    <Button onClick={() => generateTasksMutation.mutate()} disabled={generateTasksMutation.isPending} data-testid="button-confirm-generate">
+                      {generateTasksMutation.isPending ? "Generating..." : "Generate Tasks"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
