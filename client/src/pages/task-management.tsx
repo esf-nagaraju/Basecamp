@@ -82,6 +82,9 @@ interface TaskMetadata {
   rootCauseCategories: string[];
   rootCauseDetails: Record<string, string[]>;
   resolutionActions: string[];
+  actionCategories: string[];
+  actionStatuses: Record<string, string[]>;
+  followUpDays: Record<string, number>;
 }
 
 const LINES_OF_BUSINESS = [
@@ -1529,29 +1532,66 @@ export default function TaskManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium">Action/Status</label>
-                  <Input
-                    value={currentTaskData.accurioActionStatus || ''}
-                    onChange={(e) => {
-                      setLocalTaskChanges(prev => ({ ...prev, accurioActionStatus: e.target.value }));
+                  <label className="text-sm font-medium">Action Category</label>
+                  <Select
+                    value={currentTaskData.actionCategory || ''}
+                    onValueChange={(value) => {
+                      setLocalTaskChanges(prev => ({ 
+                        ...prev, 
+                        actionCategory: value,
+                        accurioActionStatus: '',
+                        followUpDays: null
+                      }));
                     }}
-                    placeholder="Enter action/status"
-                    className="mt-1"
-                    data-testid="input-accurio-action-status"
-                  />
+                  >
+                    <SelectTrigger className="mt-1" data-testid="select-action-category">
+                      <SelectValue placeholder="Select action category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(metadata?.actionCategories || [])
+                        .filter(category => category && category.trim() !== '')
+                        .map(category => (
+                          <SelectItem key={category} value={category}>{category}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium">Action Category</label>
-                  <Input
-                    value={currentTaskData.actionCategory || ''}
-                    onChange={(e) => {
-                      setLocalTaskChanges(prev => ({ ...prev, actionCategory: e.target.value }));
+                  <label className="text-sm font-medium">Action/Status</label>
+                  <Select
+                    value={currentTaskData.accurioActionStatus || ''}
+                    onValueChange={(value) => {
+                      const actionCategory = currentTaskData.actionCategory;
+                      const followUpKey = `${actionCategory}::${value}`;
+                      const followUpDaysValue = metadata?.followUpDays?.[followUpKey] ?? null;
+                      
+                      setLocalTaskChanges(prev => ({ 
+                        ...prev, 
+                        accurioActionStatus: value,
+                        followUpDays: followUpDaysValue
+                      }));
                     }}
-                    placeholder="Enter action category"
-                    className="mt-1"
-                    data-testid="input-action-category"
-                  />
+                  >
+                    <SelectTrigger className="mt-1" data-testid="select-accurio-action-status">
+                      <SelectValue placeholder={
+                        currentTaskData.actionCategory 
+                          ? "Select action/status" 
+                          : "Select action category first"
+                      } />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currentTaskData.actionCategory && metadata?.actionStatuses?.[currentTaskData.actionCategory] ? (
+                        metadata.actionStatuses[currentTaskData.actionCategory]
+                          .filter((status: string) => status && status.trim() !== '')
+                          .map((status: string) => (
+                            <SelectItem key={status} value={status}>{status}</SelectItem>
+                          ))
+                      ) : (
+                        <SelectItem value="_none" disabled>No statuses available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
