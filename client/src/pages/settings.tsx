@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -42,6 +42,8 @@ export default function Settings() {
     queryKey: ['/api/user/profile'],
   });
 
+  const hydratedRef = useRef(false);
+
   const [preferences, setPreferences] = useState<UserPreferences>({
     theme: theme,
     timezone: 'America/New_York',
@@ -52,12 +54,11 @@ export default function Settings() {
     dailyDigest: false,
     highValueAlerts: true,
     highValueThreshold: 10000,
-    ...(user?.preferences || {}),
   });
 
-  useState(() => {
-    if (user?.preferences) {
-      setPreferences({
+  useEffect(() => {
+    if (user?.preferences && !hydratedRef.current) {
+      const loadedPrefs = {
         theme: theme,
         timezone: 'America/New_York',
         dateFormat: 'MM/dd/yyyy',
@@ -68,9 +69,16 @@ export default function Settings() {
         highValueAlerts: true,
         highValueThreshold: 10000,
         ...user.preferences,
-      });
+      };
+      setPreferences(loadedPrefs);
+      
+      if (loadedPrefs.theme && (loadedPrefs.theme === 'light' || loadedPrefs.theme === 'dark')) {
+        setTheme(loadedPrefs.theme);
+      }
+      
+      hydratedRef.current = true;
     }
-  });
+  }, [user, theme, setTheme]);
 
   const updatePreferencesMutation = useMutation({
     mutationFn: async (newPreferences: UserPreferences) => {
