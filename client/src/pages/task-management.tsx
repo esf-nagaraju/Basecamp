@@ -507,30 +507,6 @@ export default function TaskManagement() {
                   data-testid="input-search"
                 />
               </div>
-              <Select value={selectedClient} onValueChange={setSelectedClient}>
-                <SelectTrigger className="w-64" data-testid="select-client">
-                  <SelectValue placeholder="Filter by client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueClients.map(client => (
-                    <SelectItem key={client} value={client}>{client}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={selectedStatuses.length > 0 ? selectedStatuses.join(',') : 'all'}
-                onValueChange={(value) => setSelectedStatuses(value === 'all' ? [] : value.split(','))}
-              >
-                <SelectTrigger className="w-48" data-testid="select-status">
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="in progress">In Progress</SelectItem>
-                  <SelectItem value="escalated">Escalated</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Work Group Filters */}
