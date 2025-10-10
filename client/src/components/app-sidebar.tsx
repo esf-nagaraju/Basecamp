@@ -48,6 +48,12 @@ const menuItems = [
     roles: [USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
   },
   {
+    title: "Analytics",
+    url: "/analytics",
+    icon: BarChart3,
+    roles: [USER_ROLES.MANAGER, USER_ROLES.SYSTEM_ADMINISTRATOR],
+  },
+  {
     title: "User Management",
     url: "/team-management",
     icon: UserCog,
