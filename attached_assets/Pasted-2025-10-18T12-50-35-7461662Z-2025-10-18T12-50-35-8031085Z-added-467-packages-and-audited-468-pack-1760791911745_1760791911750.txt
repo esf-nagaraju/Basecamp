@@ -1,0 +1,34 @@
+2025-10-18T12:50:35.7461662Z 
+2025-10-18T12:50:35.8031085Z added 467 packages, and audited 468 packages in 2m
+2025-10-18T12:50:35.8391739Z 
+2025-10-18T12:50:35.9068120Z 61 packages are looking for funding
+2025-10-18T12:50:35.9541412Z   run `npm fund` for details
+2025-10-18T12:50:35.9958341Z 
+2025-10-18T12:50:36.0505551Z 4 vulnerabilities (3 low, 1 high)
+2025-10-18T12:50:36.1066614Z 
+2025-10-18T12:50:36.1416122Z To address issues that do not require attention, run:
+2025-10-18T12:50:36.1676874Z   npm audit fix
+2025-10-18T12:50:36.2426714Z 
+2025-10-18T12:50:36.2731371Z Some issues need review, and may require choosing
+2025-10-18T12:50:36.3106183Z a different dependency.
+2025-10-18T12:50:36.3600219Z 
+2025-10-18T12:50:36.4162206Z Run `npm audit` for details.
+2025-10-18T12:50:36.4515181Z 
+2025-10-18T12:50:36.4978131Z Running 'npm run build'...
+2025-10-18T12:50:36.5248839Z 
+2025-10-18T12:50:37.3423171Z 
+2025-10-18T12:50:37.4129957Z > rest-express@1.0.0 build
+2025-10-18T12:50:37.4989308Z > npx vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+2025-10-18T12:50:37.5755439Z 
+2025-10-18T12:50:46.7095521Z .....
+2025-10-18T12:50:46.7282298Z failed to load config from /tmp/8de0e44a655e504/vite.config.ts
+2025-10-18T12:50:46.8034864Z error during build:
+2025-10-18T12:50:46.9491480Z Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /tmp/8de0e44a655e504/node_modules/.vite-temp/vite.config.ts.timestamp-1760791846650-ec07e159a0eb1.mjs
+2025-10-18T12:50:47.0315916Z     at packageResolve (node:internal/modules/esm/resolve:873:9)
+2025-10-18T12:50:47.1050869Z     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+2025-10-18T12:50:47.1636616Z     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+2025-10-18T12:50:47.2187615Z     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+2025-10-18T12:50:47.2919922Z     at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+2025-10-18T12:50:47.3332128Z     at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+2025-10-18T12:50:47.4113449Z     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+2025-10-18T12:50:47.4566604Z     at ModuleJob._link (node:internal/modules/esm/module_job:168:49)
