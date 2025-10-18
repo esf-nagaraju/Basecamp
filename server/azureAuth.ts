@@ -66,31 +66,40 @@ async function upsertUser(profile: any) {
   console.log('[Azure AD Auth] Received profile:', { 
     oid: profile.oid,
     email: profile._json?.email || profile.upn,
-    displayName: profile.displayName
+    displayName: profile.displayName,
+    roles: profile._json?.roles,
+    groups: profile._json?.groups
   });
   
   // Check if user exists and has an existing role
   const existingUser = await storage.getUser(profile.oid);
   
-  // Azure AD doesn't typically send role claims by default
-  // You may need to configure app roles in Azure AD and add them to token claims
-  let normalizedRole = profile._json?.role;
+  // Azure AD delivers app roles in the 'roles' array claim
+  // Extract the first role from the roles array if available
+  let normalizedRole;
+  const rolesArray = profile._json?.roles || [];
   
-  if (normalizedRole) {
+  if (rolesArray.length > 0) {
+    // Take the first role from the array
+    const azureRole = rolesArray[0];
+    
     const roleMap: Record<string, string> = {
       'manager': 'manager',
       'Manager': 'manager',
       'system_administrator': 'system_administrator',
       'System Administrator': 'system_administrator',
+      'SystemAdministrator': 'system_administrator',
       'rcm_specialist': 'rcm_specialist',
       'RCM Specialist': 'rcm_specialist',
+      'RCMSpecialist': 'rcm_specialist',
       'client_user': 'client_user',
       'Client User': 'client_user',
+      'ClientUser': 'client_user',
       'auditor': 'auditor',
       'Auditor': 'auditor',
     };
-    normalizedRole = roleMap[normalizedRole] || normalizedRole;
-    console.log('[Azure AD Auth] Normalized role from claim:', normalizedRole);
+    normalizedRole = roleMap[azureRole] || azureRole.toLowerCase().replace(/\s+/g, '_');
+    console.log('[Azure AD Auth] Normalized role from Azure AD roles claim:', azureRole, '->', normalizedRole);
   } else if (existingUser && existingUser.role !== 'rcm_specialist') {
     // Preserve existing non-default role when Azure AD doesn't provide role claim
     normalizedRole = existingUser.role;
@@ -136,7 +145,8 @@ export async function setupAuth(app: Express) {
     responseMode: 'form_post' as const,
     redirectUrl: redirectUrl,
     allowHttpForRedirectUrl: process.env.NODE_ENV !== 'production',
-    validateIssuer: false, // Set to true in production with proper issuer validation
+    validateIssuer: true,
+    issuer: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/v2.0`,
     passReqToCallback: true as const,
     scope: ['openid', 'profile', 'email', 'offline_access'],
     loggingLevel: process.env.NODE_ENV === 'development' ? 'info' as const : 'error' as const,

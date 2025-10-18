@@ -25,20 +25,27 @@ The frontend adheres to Microsoft Fluent Design principles, emphasizing informat
 
 ### Technical Implementations
 -   **Frontend:** Built with React 18 (TypeScript), Wouter for routing, TanStack React Query for server state, shadcn/ui for components, and Tailwind CSS for styling.
--   **Backend:** Node.js (TypeScript) with Express.js, Drizzle ORM, and Neon serverless PostgreSQL. Authentication uses OpenID Connect via Replit Auth with Passport.js.
+-   **Backend:** Node.js (TypeScript) with Express.js, Drizzle ORM, and PostgreSQL. 
+-   **Authentication:** Dual authentication support:
+    -   **Development:** OpenID Connect via Replit Auth with Passport.js
+    -   **Production/Azure:** Azure AD authentication with passport-azure-ad, automatic environment-based switching
+    -   Issuer validation enforced, roles extracted from Azure AD claims array
+    -   Session management via PostgreSQL sessions table (required for both auth providers)
 -   **API Design:** RESTful API with authentication, tenant isolation, and response logging. Includes endpoints for productivity, team management, analytics, and user settings.
 -   **Data Access:** Storage abstraction layer, tenant-scoped queries, bulk operations (claims, tasks, assignments), and computed metrics aggregation.
 -   **Background Processing:** Task generator for automated priority scoring and SLA computation.
--   **Database:** PostgreSQL (Neon serverless) with a multi-tenancy model using `tenantId` and row-level isolation. Core tables include Tenants, Users, Claims, Tasks, Activity Logs, Sessions, Team Assignments, Daily Targets, and Productivity Metrics (including `revenue_collected` with high precision). Zod schemas are used for data validation.
--   **Security:** Multi-layer authorization, row-level security, and a fix for role persistence during OIDC authentication to prevent unintended role downgrades.
+-   **Database:** PostgreSQL with a multi-tenancy model using `tenantId` and row-level isolation. Core tables include Tenants, Users, Claims, Tasks, Activity Logs, Sessions (required for auth), Team Assignments, Daily Targets, and Productivity Metrics (including `revenue_collected` with high precision). Zod schemas are used for data validation.
+-   **Security:** Multi-layer authorization, row-level security, issuer validation for OIDC tokens, and role persistence during authentication to prevent unintended role downgrades.
+-   **Deployment:** Ready for Azure Web Apps deployment with comprehensive setup documentation (see AZURE_DEPLOYMENT.md)
 
 ## External Dependencies
 
 **Authentication & Authorization:**
--   **Replit Auth:** OpenID Connect provider for SSO.
+-   **Replit Auth:** OpenID Connect provider for SSO (development environment)
+-   **Azure AD:** Enterprise authentication via passport-azure-ad (production/Azure deployment)
 
 **Database Services:**
--   **Neon PostgreSQL:** Serverless PostgreSQL database.
+-   **PostgreSQL:** Supports both Neon serverless (Replit) and Azure Database for PostgreSQL
 
 **Build & Development Tools:**
 -   **Vite:** Frontend build tool and dev server.
