@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./azureAuth";
 import { insertClaimSchema, insertTaskSchema, insertActivityLogSchema, USER_ROLES } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -11,10 +11,9 @@ import { Readable } from "stream";
 declare global {
   namespace Express {
     interface User {
-      claims: any;
-      access_token?: string;
-      refresh_token?: string;
-      expires_at?: number;
+      oid: string;
+      displayName?: string;
+      email?: string;
     }
   }
 }
@@ -27,12 +26,15 @@ const fileUpload = multer({
 });
 
 async function getUserContext(req: any): Promise<{ userId: string; tenantId: string }> {
-  const userId = req.user.claims.sub;
-  const user = await storage.getUser(userId);
+  // Azure AD user object contains oid (object identifier)
+  const azureAdId = req.user.oid;
+  const user = await storage.getUserByAzureAdId(azureAdId);
   
   if (!user) {
     throw new Error("User not found");
   }
+  
+  const userId = user.id;
   
   // Use active tenant from session, fallback to user's primary tenant
   const tenantId = req.session.activeTenantId || user.tenantId;
@@ -76,8 +78,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const azureAdId = req.user.oid;
+      const user = await storage.getUserByAzureAdId(azureAdId);
       
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -102,12 +104,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/user/tenants', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const azureAdId = req.user.oid;
+      const user = await storage.getUserByAzureAdId(azureAdId);
       
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
+      
+      const userId = user.id;
       
       // Get user's accessible tenants (primary tenant + additional tenants)
       const additionalTenants = await storage.getUserTenants(userId);
