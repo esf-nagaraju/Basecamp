@@ -22,23 +22,40 @@ This application consists of:
 
 ### 1.1 Update package.json
 
-Add the following to your `package.json`:
+**Add** the following to your `package.json` (merge with existing content, don't replace):
 
+1. Add the `engines` field at the top level:
 ```json
 {
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
-  },
+  }
+}
+```
+
+2. **Update** the `scripts` section by modifying the existing `build` script and adding new ones. Your final scripts should look like this (keeping all existing scripts):
+
+```json
+{
   "scripts": {
+    "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build",
     "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
+    "check": "tsc",
+    "db:push": "drizzle-kit push",
     "postinstall": "npm run build"
   }
 }
 ```
+
+**Changes made:**
+- Split the existing `build` script into `build:client` and `build:server`
+- Updated `build` to call both sub-scripts
+- Added `postinstall` to automatically build on Azure deployment
+- **Kept all existing scripts** (`dev`, `check`, `db:push`)
 
 **Note**: The `postinstall` script ensures Azure builds the application after installing dependencies.
 
