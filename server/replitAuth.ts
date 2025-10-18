@@ -25,10 +25,10 @@ const getOidcConfig = memoize(
   async () => {
     // Azure AD OIDC discovery endpoint
     const issuerUrl = `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/v2.0`;
+    // For Azure AD, discovery() only needs the issuer URL and client ID
     return await client.discovery(
       new URL(issuerUrl),
-      process.env.AZURE_AD_CLIENT_ID!,
-      process.env.AZURE_AD_CLIENT_SECRET!
+      process.env.AZURE_AD_CLIENT_ID!
     );
   },
   { maxAge: 3600 * 1000 }
@@ -61,10 +61,17 @@ function updateUserSession(
   user: any,
   tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
 ) {
-  user.claims = tokens.claims();
+  const claims = tokens.claims();
+  user.claims = claims;
   user.access_token = tokens.access_token;
   user.refresh_token = tokens.refresh_token;
-  user.expires_at = user.claims?.exp;
+  user.expires_at = claims?.exp;
+  
+  // Normalize user ID: use 'oid' as the canonical user identifier for Azure AD
+  // This ensures consistency with storage layer which uses oid as the user.id
+  if (claims) {
+    user.claims.sub = claims["oid"] || claims["sub"];
+  }
 }
 
 async function upsertUser(
@@ -163,15 +170,22 @@ export async function setupAuth(app: Express) {
     return `https://${hostname}/api/callback`;
   };
 
+  // Helper function to normalize hostname (strip port for strategy name)
+  const normalizeHostname = (hostname: string) => {
+    return hostname.split(':')[0];
+  };
+
   // Get all possible domains (Replit domains or localhost)
   const domains = process.env.REPLIT_DOMAINS 
     ? process.env.REPLIT_DOMAINS.split(",")
     : ['localhost:5000'];
 
   for (const domain of domains) {
+    // Use normalized hostname (without port) as strategy name
+    const normalizedDomain = normalizeHostname(domain);
     const strategy = new Strategy(
       {
-        name: `azuread:${domain}`,
+        name: `azuread:${normalizedDomain}`,
         config,
         scope: "openid email profile offline_access",
         callbackURL: getCallbackUrl(domain),
@@ -185,7 +199,8 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    const strategyName = `azuread:${req.hostname}`;
+    const normalizedHostname = normalizeHostname(req.hostname);
+    const strategyName = `azuread:${normalizedHostname}`;
     passport.authenticate(strategyName, {
       prompt: "select_account",
       scope: ["openid", "email", "profile", "offline_access"],
@@ -193,7 +208,8 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/callback", (req, res, next) => {
-    const strategyName = `azuread:${req.hostname}`;
+    const normalizedHostname = normalizeHostname(req.hostname);
+    const strategyName = `azuread:${normalizedHostname}`;
     passport.authenticate(strategyName, (err: any, user: any) => {
       if (err || !user) {
         console.error('[Azure AD Auth] Authentication failed:', err);
