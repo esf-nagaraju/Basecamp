@@ -1,0 +1,45 @@
+025-10-18T13:01:02.7038141Z 
+2025-10-18T13:02:13.5893937Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2025-10-18T13:02:13.5893679Z ................................................................
+2025-10-18T13:02:14.5328803Z npm warn deprecated rimraf@2.4.5: Rimraf versions prior to v4 are no longer supported
+2025-10-18T13:02:23.9789741Z ..
+2025-10-18T13:02:23.9797497Z npm warn deprecated glob@6.0.4: Glob versions prior to v9 are no longer supported
+2025-10-18T13:02:34.6373918Z npm warn deprecated passport-azure-ad@4.3.5: This package is deprecated and no longer supported. For more please visit https://github.com/AzureAD/passport-azure-ad?tab=readme-ov-file#node-js-validation-replacement-for-passportjs
+2025-10-18T13:02:34.6644064Z .........
+2025-10-18T13:04:20.5244648Z .....................................................................................................
+2025-10-18T13:04:20.5435328Z 
+2025-10-18T13:04:21.0561706Z added 535 packages, and audited 536 packages in 3m
+2025-10-18T13:04:21.2238740Z 
+2025-10-18T13:04:21.3965063Z 71 packages are looking for funding
+2025-10-18T13:04:21.6190834Z   run `npm fund` for details
+2025-10-18T13:04:21.8747706Z 
+2025-10-18T13:04:22.0833378Z 6 vulnerabilities (3 low, 2 moderate, 1 high)
+2025-10-18T13:04:22.2854924Z 
+2025-10-18T13:04:22.4280773Z To address issues that do not require attention, run:
+2025-10-18T13:04:22.5652372Z   npm audit fix
+2025-10-18T13:04:22.6689482Z 
+2025-10-18T13:04:22.8923441Z To address all issues possible (including breaking changes), run:
+2025-10-18T13:04:23.0060335Z   npm audit fix --force
+2025-10-18T13:04:23.1862760Z 
+2025-10-18T13:04:23.2597372Z Some issues need review, and may require choosing
+2025-10-18T13:04:23.3733027Z a different dependency.
+2025-10-18T13:04:23.4695357Z 
+2025-10-18T13:04:23.5458199Z Run `npm audit` for details.
+2025-10-18T13:04:23.6116879Z 
+2025-10-18T13:04:23.6884422Z Running 'npm run build'...
+2025-10-18T13:04:23.7632634Z 
+2025-10-18T13:04:24.6396265Z 
+2025-10-18T13:04:24.7111223Z > rest-express@1.0.0 build
+2025-10-18T13:04:24.8689051Z > npx vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+2025-10-18T13:04:24.9694930Z 
+2025-10-18T13:04:29.4641843Z failed to load config from /tmp/8de0e465d09df20/vite.config.ts
+2025-10-18T13:04:29.5411768Z error during build:
+2025-10-18T13:04:29.5810210Z Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@replit/vite-plugin-runtime-error-modal' imported from /tmp/8de0e465d09df20/vite.config.ts.timestamp-1760792669419-9426a684fbf19.mjs
+2025-10-18T13:04:29.6348383Z     at packageResolve (node:internal/modules/esm/resolve:873:9)
+2025-10-18T13:04:29.7058565Z     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+2025-10-18T13:04:29.7505835Z     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+2025-10-18T13:04:29.7785399Z     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+2025-10-18T13:04:29.8089457Z     at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+2025-10-18T13:04:29.8533076Z     at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+2025-10-18T13:04:29.9128440Z     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+2025-10-18T13:04:29.9697138Z     at ModuleJob._link (node:internal/modules/esm/module_job:168:49)
