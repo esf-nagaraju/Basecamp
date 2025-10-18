@@ -4,6 +4,7 @@ import {
   type User,
   type InsertUser,
   type UpsertUser,
+  type UpsertUserByAzureAd,
   type Tenant,
   type InsertTenant,
   type Claim,
@@ -41,9 +42,11 @@ import {
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByAzureAdId(azureAdId: string): Promise<User | undefined>;
   getUsers(tenantId: string): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
+  upsertUserByAzureAd(user: UpsertUserByAzureAd): Promise<User>;
   updateUserRole(userId: string, role: string): Promise<User | undefined>;
   updateUserPreferences(userId: string, tenantId: string, preferences: any): Promise<User | undefined>;
   
@@ -245,6 +248,11 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
+  async getUserByAzureAdId(azureAdId: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.azureAdId, azureAdId)).limit(1);
+    return result[0];
+  }
+
   async getUsers(tenantId: string): Promise<User[]> {
     const allUsers = await db.select().from(users).where(eq(users.tenantId, tenantId));
     
@@ -321,6 +329,61 @@ export class DbStorage implements IStorage {
       })
       .onConflictDoUpdate({
         target: users.id,
+        set: updateFields,
+      })
+      .returning();
+    return user;
+  }
+
+  async upsertUserByAzureAd(userData: UpsertUserByAzureAd): Promise<User> {
+    let defaultTenant = await db
+      .select()
+      .from(tenants)
+      .limit(1);
+    
+    if (defaultTenant.length === 0) {
+      const [newTenant] = await db
+        .insert(tenants)
+        .values({
+          name: 'Default Organization',
+          settings: {},
+        })
+        .returning();
+      defaultTenant = [newTenant];
+    }
+    
+    const tenantId = defaultTenant[0].id;
+    const roleForInsert = userData.role || USER_ROLES.RCM_SPECIALIST;
+    
+    const fullName = [userData.firstName, userData.lastName].filter(Boolean).join(' ') || userData.email || 'User';
+    
+    const updateFields: any = {
+      email: userData.email,
+      firstName: userData.firstName || null,
+      lastName: userData.lastName || null,
+      profileImageUrl: userData.profileImageUrl || null,
+      fullName,
+      updatedAt: new Date(),
+    };
+    
+    if (userData.role !== undefined) {
+      updateFields.role = userData.role;
+    }
+    
+    const [user] = await db
+      .insert(users)
+      .values({
+        azureAdId: userData.azureAdId,
+        email: userData.email,
+        firstName: userData.firstName || null,
+        lastName: userData.lastName || null,
+        profileImageUrl: userData.profileImageUrl || null,
+        fullName,
+        tenantId: tenantId,
+        role: roleForInsert,
+      })
+      .onConflictDoUpdate({
+        target: users.azureAdId,
         set: updateFields,
       })
       .returning();

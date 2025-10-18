@@ -35,6 +35,7 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id),
   replitId: varchar("replit_id"),
+  azureAdId: varchar("azure_ad_id"),
   username: text("username"),
   password: text("password"),
   email: text("email"),
@@ -49,6 +50,7 @@ export const users = pgTable("users", {
 }, (table) => ({
   tenantIdx: index("users_tenant_idx").on(table.tenantId),
   replitIdIdx: index("users_replit_id_idx").on(table.replitId),
+  azureAdIdIdx: index("users_azure_ad_id_idx").on(table.azureAdId),
   tenantUsernameUnique: index("users_tenant_username_unique").on(table.tenantId, table.username),
 }));
 
@@ -251,6 +253,17 @@ export const upsertUserSchema = z.object({
   lastName: z.string().nullable(),
   profileImageUrl: z.string().nullable(),
 });
+
+export const upsertUserByAzureAdSchema = z.object({
+  azureAdId: z.string(),
+  email: z.string(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  profileImageUrl: z.string().optional(),
+  role: z.string().optional(),
+});
+
+export type UpsertUserByAzureAd = z.infer<typeof upsertUserByAzureAdSchema>;
 
 export const insertUserTenantSchema = createInsertSchema(userTenants).omit({
   id: true,
