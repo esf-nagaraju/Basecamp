@@ -1,0 +1,29 @@
+2025-10-18T13:19:08.8736796Z Running 'npm run build'...
+2025-10-18T13:19:08.9098185Z 
+2025-10-18T13:19:09.6035898Z 
+2025-10-18T13:19:09.6758148Z > rest-express@1.0.0 build
+2025-10-18T13:19:09.7404743Z > npx vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+2025-10-18T13:19:09.9022272Z 
+2025-10-18T13:19:15.8139716Z .
+2025-10-18T13:19:15.8147190Z vite v5.4.20 building for production...
+2025-10-18T13:19:16.2222191Z transforming...
+2025-10-18T13:19:18.5458931Z Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+2025-10-18T13:19:18.6253704Z   npx update-browserslist-db@latest
+2025-10-18T13:19:18.7204527Z   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+2025-10-18T13:19:19.3858287Z âœ“ 3 modules transformed.
+2025-10-18T13:19:19.4527936Z x Build failed in 3.41s
+2025-10-18T13:19:19.5296698Z error during build:
+2025-10-18T13:19:19.7354160Z [vite:css] [postcss] Cannot find module '@tailwindcss/typography'
+2025-10-18T13:19:19.9446157Z Require stack:
+2025-10-18T13:19:20.0762456Z - /tmp/8de0e48a479d33f/tailwind.config.ts
+2025-10-18T13:19:20.1333273Z file: /tmp/8de0e48a479d33f/client/src/index.css:undefined:NaN
+2025-10-18T13:19:20.2052245Z     at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+2025-10-18T13:19:20.2337191Z     at Function.resolve (node:internal/modules/helpers:193:19)
+2025-10-18T13:19:20.3100505Z     at _resolve (/tmp/8de0e48a479d33f/node_modules/jiti/dist/jiti.js:1:241814)
+2025-10-18T13:19:20.3510501Z     at jiti (/tmp/8de0e48a479d33f/node_modules/jiti/dist/jiti.js:1:244531)
+2025-10-18T13:19:20.4649260Z     at /tmp/8de0e48a479d33f/tailwind.config.ts:106:45
+2025-10-18T13:19:20.5577472Z     at evalModule (/tmp/8de0e48a479d33f/node_modules/jiti/dist/jiti.js:1:247313)
+2025-10-18T13:19:20.6425897Z     at jiti (/tmp/8de0e48a479d33f/node_modules/jiti/dist/jiti.js:1:245241)
+2025-10-18T13:19:20.8690559Z     at /tmp/8de0e48a479d33f/node_modules/tailwindcss/lib/lib/load-config.js:52:26
+2025-10-18T13:19:20.9643933Z     at loadConfig (/tmp/8de0e48a479d33f/node_modules/tailwindcss/lib/lib/load-config.js:62:6)
+2025-10-18T13:19:21.0779391Z     at getTailwindConfig (/tmp/8de0e48a479d33f/node_modules/tailwindcss/lib/lib/setupTrackingContext.js:71:116)
