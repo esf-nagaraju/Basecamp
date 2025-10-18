@@ -486,6 +486,43 @@ For production workloads:
    - Back up PostgreSQL database regularly
    - Test disaster recovery procedures
 
+## Known Issues & Future Improvements
+
+### ⚠️ Deprecated Dependencies
+
+**passport-azure-ad (Currently in Use)**
+- Status: Deprecated by Microsoft but still functional
+- Impact: No security updates or bug fixes from Microsoft
+- Current Action: Continuing to use for initial deployment
+- Future Plan: Migrate to `@azure/msal-node` (Microsoft's recommended solution)
+- Timeline: Plan migration after successful initial deployment
+
+**Why We're Not Migrating Yet:**
+- Current implementation is stable and working
+- Migration requires significant refactoring (1-2 hours)
+- Better to deploy successfully first, then improve
+- passport-azure-ad still works perfectly fine for Azure AD authentication
+
+**Future Migration Path:**
+When ready to migrate, the replacement stack will be:
+- `@azure/msal-node` - Microsoft Authentication Library
+- `express-session` - Session management (already in use)
+- Custom middleware for token validation
+
+### 📦 Other Dependency Notes
+
+**xlsx Package:**
+- Has a known Prototype Pollution vulnerability
+- No fix currently available
+- Used for Excel file import/export functionality
+- Risk is low for internal enterprise applications
+- Consider alternative if handling untrusted file uploads
+
+**Build Tools (esbuild, vite):**
+- Minor vulnerabilities in development dependencies
+- Low severity, does not affect production runtime
+- Can be addressed with future updates
+
 ## Cost Optimization
 
 1. **App Service:**
