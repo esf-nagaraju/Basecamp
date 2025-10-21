@@ -2,6 +2,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
 import type { Express } from "express";
+import { storage } from "./storage";
 
 // Default admin credentials from environment variables
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
@@ -43,6 +44,7 @@ initializeAdminPassword();
 
 // Local admin authentication strategy
 export function setupLocalAdminAuth() {
+  // Admin-only authentication
   passport.use('local-admin', new LocalStrategy(
     {
       usernameField: 'username',
@@ -74,9 +76,57 @@ export function setupLocalAdminAuth() {
       }
     }
   ));
+
+  // Database user authentication
+  passport.use('local-user', new LocalStrategy(
+    {
+      usernameField: 'email',
+      passwordField: 'password'
+    },
+    async (email, password, done) => {
+      console.log('[User Auth] Login attempt for email:', email);
+      
+      try {
+        // Find user by email
+        const user = await storage.getUserByEmail(email);
+        
+        if (!user) {
+          console.log('[User Auth] User not found');
+          return done(null, false, { message: 'Invalid email or password' });
+        }
+
+        // Check if user has a password set
+        if (!user.password) {
+          console.log('[User Auth] User has no password - must use Microsoft login');
+          return done(null, false, { message: 'This account uses Microsoft login. Please sign in with Microsoft.' });
+        }
+
+        // Verify password
+        const isValid = await bcrypt.compare(password, user.password);
+        
+        if (!isValid) {
+          console.log('[User Auth] Invalid password');
+          return done(null, false, { message: 'Invalid email or password' });
+        }
+
+        console.log('[User Auth] ✓ User login successful:', user.email);
+        
+        // Return user for session (similar to Azure AD format)
+        return done(null, {
+          oid: user.id, // Use user ID as oid for consistency
+          displayName: `${user.firstName} ${user.lastName}`,
+          email: user.email,
+          isLocalUser: true // Flag to distinguish from Azure AD users
+        } as any);
+      } catch (error) {
+        console.error('[User Auth] Error during authentication:', error);
+        return done(error);
+      }
+    }
+  ));
 }
 
-// Login route for local admin
+// Login routes for both admin and database users
 export function setupLocalAdminRoutes(app: Express) {
   // Admin login endpoint
   app.post('/api/auth/admin/login', 
@@ -102,16 +152,32 @@ export function setupLocalAdminRoutes(app: Express) {
     }
   );
 
-  // Admin logout endpoint
-  app.post('/api/auth/admin/logout', (req, res) => {
+  // Database user login endpoint
+  app.post('/api/auth/login', 
+    passport.authenticate('local-user', { 
+      failureMessage: true 
+    }),
+    (req, res) => {
+      console.log('[User Auth] User authenticated, creating session');
+      
+      // Return success - user info will be fetched via /api/auth/user
+      res.json({
+        ok: true,
+        message: 'Login successful'
+      });
+    }
+  );
+
+  // Logout endpoint (works for both admin and regular users)
+  app.post('/api/auth/logout', (req, res) => {
     req.logout((err) => {
       if (err) {
-        console.error('[Local Admin Auth] Logout error:', err);
+        console.error('[Auth] Logout error:', err);
         return res.status(500).json({ ok: false, message: 'Logout failed' });
       }
       req.session.destroy((err) => {
         if (err) {
-          console.error('[Local Admin Auth] Session destroy error:', err);
+          console.error('[Auth] Session destroy error:', err);
         }
         res.json({ ok: true });
       });
