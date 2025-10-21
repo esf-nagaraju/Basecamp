@@ -109,7 +109,15 @@ async function upsertUser(profile: IProfile) {
   const firstName = nameParts[0] || '';
   const lastName = nameParts.slice(1).join(' ') || '';
 
-  // Determine role - Azure AD roles take priority, then existing role, then default
+  // Check if this is the first user in the system
+  const allUsers = await storage.getUsers(''); // Empty string to get all users across all tenants
+  const isFirstUser = allUsers.length === 0;
+  
+  if (isFirstUser) {
+    console.log('[Azure AD Auth] First user detected - automatically granting system_administrator role');
+  }
+
+  // Determine role - Azure AD roles take priority, then first user check, then existing role, then default
   let role = 'rcm_specialist';
   
   // First, check if Azure AD provides roles (this takes priority)
@@ -128,10 +136,14 @@ async function upsertUser(profile: IProfile) {
     } else if (azureRoles.includes('rcm_specialist')) {
       role = 'rcm_specialist';
     }
-  } else if (existingUser && 'role' in existingUser && existingUser.role) {
+  } else if (isFirstUser) {
+    // First user in the system automatically becomes system administrator
+    role = 'system_administrator';
+    console.log('[Azure AD Auth] Granting system_administrator role to first user');
+  } else if (existingUser && typeof existingUser === 'object' && 'role' in existingUser && existingUser.role) {
     // If no Azure AD roles, preserve existing database role
     console.log('[Azure AD Auth] No Azure AD roles, using existing role:', existingUser.role);
-    role = existingUser.role;
+    role = existingUser.role as string;
   } else {
     // Default to rcm_specialist if no roles found anywhere
     console.log('[Azure AD Auth] No roles found, defaulting to rcm_specialist');
