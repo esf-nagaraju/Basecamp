@@ -74,7 +74,7 @@ export function getSession() {
 }
 
 async function upsertUser(profile: IProfile) {
-  console.log('[Azure AD Auth] Received profile:', {
+  console.log('[Azure AD Auth] Step 1: Received profile:', {
     oid: profile.oid,
     email: profile._json?.email || profile.upn,
     displayName: profile.displayName,
@@ -87,8 +87,22 @@ async function upsertUser(profile: IProfile) {
     throw new Error('Azure AD profile missing required fields (oid or email)');
   }
 
-  // Check if user exists
-  const existingUser = await storage.getUserByAzureAdId(azureAdId);
+  console.log('[Azure AD Auth] Step 2: Checking if user exists...');
+  
+  // Check if user exists with timeout
+  let existingUser;
+  try {
+    existingUser = await Promise.race([
+      storage.getUserByAzureAdId(azureAdId),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database query timeout after 10s')), 10000)
+      )
+    ]);
+    console.log('[Azure AD Auth] Step 3: User lookup complete. Exists:', !!existingUser);
+  } catch (error) {
+    console.error('[Azure AD Auth] Error checking user:', error);
+    throw error;
+  }
 
   // Parse name from displayName
   const nameParts = (profile.displayName || '').split(' ');
@@ -113,16 +127,27 @@ async function upsertUser(profile: IProfile) {
     }
   }
 
-  console.log('[Azure AD Auth] Upserting user with role:', role);
+  console.log('[Azure AD Auth] Step 4: Upserting user with role:', role);
 
-  await storage.upsertUserByAzureAd({
-    azureAdId,
-    email,
-    firstName,
-    lastName,
-    profileImageUrl: profile._json?.picture,
-    role,
-  });
+  try {
+    await Promise.race([
+      storage.upsertUserByAzureAd({
+        azureAdId,
+        email,
+        firstName,
+        lastName,
+        profileImageUrl: profile._json?.picture,
+        role,
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('User upsert timeout after 15s')), 15000)
+      )
+    ]);
+    console.log('[Azure AD Auth] Step 5: User upsert complete');
+  } catch (error) {
+    console.error('[Azure AD Auth] Error upserting user:', error);
+    throw error;
+  }
 }
 
 export async function setupAuth(app: Express) {
