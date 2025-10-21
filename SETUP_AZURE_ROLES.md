@@ -112,11 +112,9 @@ SELECT email, role, azure_ad_id FROM users;
 **Solution**:
 1. Verify the role is assigned in Azure AD (Enterprise applications → Users and groups)
 2. Check that the **Value** field in App roles matches exactly: `system_administrator`, `manager`, etc.
-3. Delete the user from the database and log in again:
-   ```sql
-   DELETE FROM users WHERE email = 'user@domain.com';
-   ```
-4. Clear browser cache and log in fresh
+3. **Log out and log back in** - The latest code now updates roles on every login
+4. If still not working, check Azure App Service logs for: `[Azure AD Auth] Azure AD roles found: [...]`
+5. If no roles shown in logs, see "Roles Not Showing in Token" below
 
 ### Roles Not Showing in Token
 

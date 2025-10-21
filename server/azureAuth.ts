@@ -109,13 +109,14 @@ async function upsertUser(profile: IProfile) {
   const firstName = nameParts[0] || '';
   const lastName = nameParts.slice(1).join(' ') || '';
 
-  // Determine role - preserve existing role or default to rcm_specialist
+  // Determine role - Azure AD roles take priority, then existing role, then default
   let role = 'rcm_specialist';
-  if (existingUser && 'role' in existingUser && existingUser.role) {
-    role = existingUser.role;
-  } else if (profile._json?.roles && Array.isArray(profile._json.roles)) {
-    // Map Azure AD app roles to system roles
+  
+  // First, check if Azure AD provides roles (this takes priority)
+  if (profile._json?.roles && Array.isArray(profile._json.roles)) {
     const azureRoles = profile._json.roles as string[];
+    console.log('[Azure AD Auth] Azure AD roles found:', azureRoles);
+    
     if (azureRoles.includes('system_administrator')) {
       role = 'system_administrator';
     } else if (azureRoles.includes('manager')) {
@@ -124,7 +125,16 @@ async function upsertUser(profile: IProfile) {
       role = 'auditor';
     } else if (azureRoles.includes('client_user')) {
       role = 'client_user';
+    } else if (azureRoles.includes('rcm_specialist')) {
+      role = 'rcm_specialist';
     }
+  } else if (existingUser && 'role' in existingUser && existingUser.role) {
+    // If no Azure AD roles, preserve existing database role
+    console.log('[Azure AD Auth] No Azure AD roles, using existing role:', existingUser.role);
+    role = existingUser.role;
+  } else {
+    // Default to rcm_specialist if no roles found anywhere
+    console.log('[Azure AD Auth] No roles found, defaulting to rcm_specialist');
   }
 
   console.log('[Azure AD Auth] Step 4: Upserting user with role:', role);
