@@ -31,7 +31,12 @@ The frontend adheres to Microsoft Fluent Design principles, emphasizing informat
 -   **Background Processing:** Task generator for automated priority scoring and SLA computation.
 -   **Database:** PostgreSQL (Neon serverless) with a multi-tenancy model using `tenantId` and row-level isolation. Core tables include Tenants, Users (with `azureAdId` for Azure AD integration), Claims, Tasks, Activity Logs, Sessions, Team Assignments, Daily Targets, and Productivity Metrics (including `revenue_collected` with high precision). Zod schemas are used for data validation.
 -   **Security:** Multi-layer authorization, row-level security, Azure AD role mapping, and session management with secure cookies.
--   **Dual Authentication System:** Supports both Azure AD authentication for regular users and a built-in local administrator account for emergency access and initial setup. The local admin uses username/password authentication (default: `admin`/`admin123` - customizable via environment variables) and has full system administrator privileges independent of Azure AD.
+-   **Dual Authentication System:** Supports three authentication methods:
+    1. **Email/Password Login** (Primary): All database users can log in with their email and password. Passwords are hashed with bcrypt (10 rounds) for security.
+    2. **Microsoft Azure AD Login** (Optional): Enterprise SSO via Azure AD when configured with environment variables.
+    3. **Local Administrator Account** (Emergency Access): Built-in admin account (default: `admin`/`admin123` - customizable via `ADMIN_USERNAME` and `ADMIN_PASSWORD` environment variables) with full system administrator privileges, independent of database or Azure AD.
+-   **User Management:** When creating users through Team Management, administrators can set passwords for email/password authentication. Users created with passwords can immediately log in using their email and password.
+-   **Password Security:** All user passwords are hashed using bcrypt with 10 salt rounds before storage. Passwords are never stored in plain text or logged.
 
 ## External Dependencies
 
