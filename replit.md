@@ -31,7 +31,7 @@ The frontend adheres to Microsoft Fluent Design principles, emphasizing informat
 -   **Background Processing:** Task generator for automated priority scoring and SLA computation.
 -   **Database:** PostgreSQL (Neon serverless) with a multi-tenancy model using `tenantId` and row-level isolation. Core tables include Tenants, Users (with `azureAdId` for Azure AD integration), Claims, Tasks, Activity Logs, Sessions, Team Assignments, Daily Targets, and Productivity Metrics (including `revenue_collected` with high precision). Zod schemas are used for data validation.
 -   **Security:** Multi-layer authorization, row-level security, Azure AD role mapping, and session management with secure cookies.
--   **First User Auto-Admin:** The first user to log in automatically receives the `system_administrator` role, enabling them to manage other users through the built-in Team Management interface.
+-   **Dual Authentication System:** Supports both Azure AD authentication for regular users and a built-in local administrator account for emergency access and initial setup. The local admin uses username/password authentication (default: `admin`/`admin123` - customizable via environment variables) and has full system administrator privileges independent of Azure AD.
 
 ## External Dependencies
 
