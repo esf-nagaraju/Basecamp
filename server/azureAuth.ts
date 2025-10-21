@@ -111,7 +111,7 @@ async function upsertUser(profile: IProfile) {
 
   // Determine role - preserve existing role or default to rcm_specialist
   let role = 'rcm_specialist';
-  if (existingUser && existingUser.role) {
+  if (existingUser && 'role' in existingUser && existingUser.role) {
     role = existingUser.role;
   } else if (profile._json?.roles && Array.isArray(profile._json.roles)) {
     // Map Azure AD app roles to system roles
