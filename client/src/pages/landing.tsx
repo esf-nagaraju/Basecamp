@@ -38,12 +38,12 @@ export default function Landing() {
                   className="w-full h-12 text-base bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
                   size="lg"
                 >
-                  Sign in with Replit
+                  Sign in with Microsoft
                 </Button>
 
                 <div className="text-center">
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Secure authentication powered by Replit
+                    Secure authentication powered by Microsoft
                   </p>
                 </div>
               </div>
