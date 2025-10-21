@@ -18,6 +18,21 @@ Username: admin
 Password: admin123
 ```
 
+## Quick Start (Admin-Only Mode)
+
+You can run the application with **just the admin login** without configuring Azure AD:
+
+1. **Set SESSION_SECRET** environment variable (required):
+   ```env
+   SESSION_SECRET=your-random-secret-here-minimum-32-characters
+   ```
+
+2. **Start the application**
+3. **Login with admin credentials** (admin/admin123)
+4. ✅ **You're ready to go!**
+
+Azure AD (Microsoft login) is **optional**. If not configured, users will only see the "Admin Login" option.
+
 ## How to Customize Admin Credentials
 
 ### Option 1: Environment Variables (Recommended)

@@ -6,18 +6,21 @@ import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 import { setupLocalAdminAuth, setupLocalAdminRoutes, isLocalAdmin } from "./localAdminAuth";
 
-// Validate required environment variables
-const requiredEnvVars = [
-  'AZURE_TENANT_ID',
-  'AZURE_CLIENT_ID',
-  'AZURE_CLIENT_SECRET',
-  'SESSION_SECRET'
-];
+// Check if Azure AD is configured
+const isAzureAdConfigured = !!(
+  process.env.AZURE_TENANT_ID &&
+  process.env.AZURE_CLIENT_ID &&
+  process.env.AZURE_CLIENT_SECRET
+);
 
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    throw new Error(`Environment variable ${envVar} is required for Azure AD authentication`);
-  }
+// SESSION_SECRET is always required
+if (!process.env.SESSION_SECRET) {
+  throw new Error('Environment variable SESSION_SECRET is required');
+}
+
+if (!isAzureAdConfigured) {
+  console.log('[Azure AD] Azure AD not configured - only local admin login will be available');
+  console.log('[Azure AD] To enable Microsoft login, set: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET');
 }
 
 // Get the app URL for redirect URIs
@@ -31,24 +34,28 @@ const getAppUrl = () => {
 
 const appUrl = getAppUrl();
 
-// Azure AD OIDC Configuration
-const azureAdConfig: IOIDCStrategyOptionWithRequest = {
-  identityMetadata: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/v2.0/.well-known/openid-configuration`,
-  clientID: process.env.AZURE_CLIENT_ID!,
-  clientSecret: process.env.AZURE_CLIENT_SECRET!,
-  responseType: 'code id_token',
-  responseMode: 'form_post',
-  redirectUrl: `${appUrl}/api/callback`,
-  allowHttpForRedirectUrl: process.env.NODE_ENV === 'development',
-  validateIssuer: true,
-  passReqToCallback: true,
-  scope: ['openid', 'profile', 'email'],
-  loggingLevel: 'info',
-  nonceLifetime: 3600,
-  nonceMaxAmount: 5,
-  useCookieInsteadOfSession: false,
-  cookieSameSite: false,
-};
+// Azure AD OIDC Configuration (only if configured)
+let azureAdConfig: IOIDCStrategyOptionWithRequest | null = null;
+
+if (isAzureAdConfigured) {
+  azureAdConfig = {
+    identityMetadata: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/v2.0/.well-known/openid-configuration`,
+    clientID: process.env.AZURE_CLIENT_ID!,
+    clientSecret: process.env.AZURE_CLIENT_SECRET!,
+    responseType: 'code id_token',
+    responseMode: 'form_post',
+    redirectUrl: `${appUrl}/api/callback`,
+    allowHttpForRedirectUrl: process.env.NODE_ENV === 'development',
+    validateIssuer: true,
+    passReqToCallback: true,
+    scope: ['openid', 'profile', 'email'],
+    loggingLevel: 'info',
+    nonceLifetime: 3600,
+    nonceMaxAmount: 5,
+    useCookieInsteadOfSession: false,
+    cookieSameSite: false,
+  };
+}
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000;
@@ -202,7 +209,11 @@ export async function setupAuth(app: Express) {
     }
   };
 
-  passport.use('azuread-openidconnect', new OIDCStrategy(azureAdConfig, verify));
+  // Setup Azure AD authentication only if configured
+  if (azureAdConfig) {
+    passport.use('azuread-openidconnect', new OIDCStrategy(azureAdConfig, verify));
+    console.log('[Azure AD] Azure AD authentication strategy configured');
+  }
 
   // Setup local admin authentication
   setupLocalAdminAuth();
@@ -218,13 +229,23 @@ export async function setupAuth(app: Express) {
     cb(null, user);
   });
 
-  // Login route - initiates Azure AD authentication
-  app.get("/api/login", passport.authenticate('azuread-openidconnect', {
-    failureRedirect: '/',
-  }));
+  // Login route - initiates Azure AD authentication (only if configured)
+  app.get("/api/login", (req, res, next) => {
+    if (!azureAdConfig) {
+      return res.status(503).json({ 
+        message: 'Microsoft login is not configured. Please use admin login or configure Azure AD.' 
+      });
+    }
+    passport.authenticate('azuread-openidconnect', {
+      failureRedirect: '/',
+    })(req, res, next);
+  });
 
-  // Callback route - handles Azure AD response
+  // Callback route - handles Azure AD response (only if configured)
   app.post("/api/callback", (req, res, next) => {
+    if (!azureAdConfig) {
+      return res.redirect('/');
+    }
     console.log('[Azure AD Auth] Callback received');
     passport.authenticate('azuread-openidconnect', (err: any, user: any, info: any) => {
       console.log('[Azure AD Auth] Callback result - err:', err, 'user:', user ? 'present' : 'null', 'info:', info);

@@ -224,6 +224,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/users', isAuthenticated, async (req: any, res) => {
     try {
+      // Handle local admin user
+      if (req.user.isLocalAdmin) {
+        // Local admin can see all users across all tenants
+        const { tenantId } = await getUserContext(req);
+        const users = await storage.getUsers(tenantId);
+        const safeUsers = users.map(({ password, ...user }) => user);
+        return res.json(safeUsers);
+      }
+      
       const { userId, tenantId } = await getUserContext(req);
       const user = await storage.getUser(userId);
       
@@ -244,11 +253,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/users', isAuthenticated, async (req: any, res) => {
     try {
       const { userId, tenantId } = await getUserContext(req);
-      const user = await storage.getUser(userId);
       
-      // Allow both Managers and System Administrators to add users
-      if (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR)) {
-        return res.status(403).json({ message: "Only Managers and System Administrators can add users" });
+      // Handle local admin user
+      let userRole: string = req.user.isLocalAdmin ? USER_ROLES.SYSTEM_ADMINISTRATOR : '';
+      
+      if (!req.user.isLocalAdmin) {
+        const user = await storage.getUser(userId);
+        
+        // Allow both Managers and System Administrators to add users
+        if (!user || (user.role !== USER_ROLES.MANAGER && user.role !== USER_ROLES.SYSTEM_ADMINISTRATOR)) {
+          return res.status(403).json({ message: "Only Managers and System Administrators can add users" });
+        }
+        
+        userRole = user.role;
       }
 
       const { firstName, lastName, email, role, employeeId } = req.body;
@@ -274,7 +291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = validation.data;
 
       // Restrict managers from creating elevated roles (system_administrator, manager)
-      if (user.role === USER_ROLES.MANAGER) {
+      if (userRole === USER_ROLES.MANAGER) {
         if (validatedData.role === USER_ROLES.SYSTEM_ADMINISTRATOR || validatedData.role === USER_ROLES.MANAGER) {
           return res.status(403).json({ message: "Managers cannot create System Administrator or Manager roles" });
         }
@@ -317,10 +334,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/users/:id/role', isAuthenticated, async (req: any, res) => {
     try {
       const { userId, tenantId } = await getUserContext(req);
-      const user = await storage.getUser(userId);
       
-      if (!user || user.role !== 'system_administrator') {
-        return res.status(403).json({ message: "Only System Administrators can update user roles" });
+      // Handle local admin user
+      if (!req.user.isLocalAdmin) {
+        const user = await storage.getUser(userId);
+        
+        if (!user || user.role !== 'system_administrator') {
+          return res.status(403).json({ message: "Only System Administrators can update user roles" });
+        }
       }
 
       const { role } = req.body;
