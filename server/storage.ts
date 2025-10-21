@@ -336,6 +336,41 @@ export class DbStorage implements IStorage {
   }
 
   async upsertUserByAzureAd(userData: UpsertUserByAzureAd): Promise<User> {
+    // Check if user already exists
+    const existingUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.azureAdId, userData.azureAdId))
+      .limit(1);
+    
+    const fullName = [userData.firstName, userData.lastName].filter(Boolean).join(' ') || userData.email || 'User';
+    
+    // If user exists, update them
+    if (existingUser.length > 0) {
+      const updateFields: any = {
+        email: userData.email,
+        firstName: userData.firstName || null,
+        lastName: userData.lastName || null,
+        profileImageUrl: userData.profileImageUrl || null,
+        fullName,
+        updatedAt: new Date(),
+      };
+      
+      // Only update role if it's explicitly provided (preserve existing role otherwise)
+      if (userData.role !== undefined) {
+        updateFields.role = userData.role;
+      }
+      
+      const [updatedUser] = await db
+        .update(users)
+        .set(updateFields)
+        .where(eq(users.azureAdId, userData.azureAdId))
+        .returning();
+      
+      return updatedUser;
+    }
+    
+    // User doesn't exist, create new user
     let defaultTenant = await db
       .select()
       .from(tenants)
@@ -355,22 +390,7 @@ export class DbStorage implements IStorage {
     const tenantId = defaultTenant[0].id;
     const roleForInsert = userData.role || USER_ROLES.RCM_SPECIALIST;
     
-    const fullName = [userData.firstName, userData.lastName].filter(Boolean).join(' ') || userData.email || 'User';
-    
-    const updateFields: any = {
-      email: userData.email,
-      firstName: userData.firstName || null,
-      lastName: userData.lastName || null,
-      profileImageUrl: userData.profileImageUrl || null,
-      fullName,
-      updatedAt: new Date(),
-    };
-    
-    if (userData.role !== undefined) {
-      updateFields.role = userData.role;
-    }
-    
-    const [user] = await db
+    const [newUser] = await db
       .insert(users)
       .values({
         azureAdId: userData.azureAdId,
@@ -382,12 +402,9 @@ export class DbStorage implements IStorage {
         tenantId: tenantId,
         role: roleForInsert,
       })
-      .onConflictDoUpdate({
-        target: users.azureAdId,
-        set: updateFields,
-      })
       .returning();
-    return user;
+    
+    return newUser;
   }
 
   async updateUserRole(userId: string, role: string): Promise<User | undefined> {

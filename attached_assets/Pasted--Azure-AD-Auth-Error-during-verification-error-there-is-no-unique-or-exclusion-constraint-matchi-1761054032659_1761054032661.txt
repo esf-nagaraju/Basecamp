@@ -1,0 +1,50 @@
+ [Azure AD Auth] Error during verification: error: there is no unique or exclusion constraint matching the ON CONFLICT specification
+2025-10-21T13:39:38.360640087Z: [ERROR]      at /node_modules/pg-pool/index.js:45:11
+2025-10-21T13:39:38.360643287Z: [ERROR]      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-10-21T13:39:38.360646587Z: [ERROR]      at async file:///node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-10-21T13:39:38.360649888Z: [ERROR]      at async DbStorage.upsertUserByAzureAd (file:///home/site/wwwroot/dist/index.js:483:24)
+2025-10-21T13:39:38.360653188Z: [ERROR]      at async upsertUser (file:///home/site/wwwroot/dist/index.js:1802:5)
+2025-10-21T13:39:38.360656488Z: [ERROR]      at async Strategy.verify [as _verify] (file:///home/site/wwwroot/dist/index.js:1828:7) {
+2025-10-21T13:39:38.360659788Z: [ERROR]    length: 148,
+2025-10-21T13:39:38.360662988Z: [ERROR]    severity: 'ERROR',
+2025-10-21T13:39:38.360666088Z: [ERROR]    code: '42P10',
+2025-10-21T13:39:38.360669288Z: [ERROR]    detail: undefined,
+2025-10-21T13:39:38.360672388Z: [ERROR]    hint: undefined,
+2025-10-21T13:39:38.360675588Z: [ERROR]    position: undefined,
+2025-10-21T13:39:38.360678688Z: [ERROR]    internalPosition: undefined,
+2025-10-21T13:39:38.360681888Z: [ERROR]    internalQuery: undefined,
+2025-10-21T13:39:38.360684988Z: [ERROR]    where: undefined,
+2025-10-21T13:39:38.360688088Z: [ERROR]    schema: undefined,
+2025-10-21T13:39:38.360691288Z: [ERROR]    table: undefined,
+2025-10-21T13:39:38.360694388Z: [ERROR]    column: undefined,
+2025-10-21T13:39:38.360697588Z: [ERROR]    dataType: undefined,
+2025-10-21T13:39:38.360700688Z: [ERROR]    constraint: undefined,
+2025-10-21T13:39:38.360703788Z: [ERROR]    file: 'plancat.c',
+2025-10-21T13:39:38.360706988Z: [ERROR]    line: '943',
+2025-10-21T13:39:38.360710088Z: [ERROR]    routine: 'infer_arbiter_indexes'
+2025-10-21T13:39:38.360713288Z: [ERROR]  }
+2025-10-21T13:39:38.360724988Z: [ERROR]  [Azure AD Auth] Authentication error: error: there is no unique or exclusion constraint matching the ON CONFLICT specification
+2025-10-21T13:39:38.360728788Z: [ERROR]      at /node_modules/pg-pool/index.js:45:11
+2025-10-21T13:39:38.360731888Z: [ERROR]      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-10-21T13:39:38.360735088Z: [ERROR]      at async file:///node_modules/drizzle-orm/node-postgres/session.js:83:22
+2025-10-21T13:39:38.360738288Z: [ERROR]      at async DbStorage.upsertUserByAzureAd (file:///home/site/wwwroot/dist/index.js:483:24)
+2025-10-21T13:39:38.360746388Z: [ERROR]      at async upsertUser (file:///home/site/wwwroot/dist/index.js:1802:5)
+2025-10-21T13:39:38.360750288Z: [ERROR]      at async Strategy.verify [as _verify] (file:///home/site/wwwroot/dist/index.js:1828:7) {
+2025-10-21T13:39:38.360753489Z: [ERROR]    length: 148,
+2025-10-21T13:39:38.360756589Z: [ERROR]    severity: 'ERROR',
+2025-10-21T13:39:38.360759789Z: [ERROR]    code: '42P10',
+2025-10-21T13:39:38.360762889Z: [ERROR]    detail: undefined,
+2025-10-21T13:39:38.360766089Z: [ERROR]    hint: undefined,
+2025-10-21T13:39:38.360769089Z: [ERROR]    position: undefined,
+2025-10-21T13:39:38.360772289Z: [ERROR]    internalPosition: undefined,
+2025-10-21T13:39:38.360775389Z: [ERROR]    internalQuery: undefined,
+2025-10-21T13:39:38.360778589Z: [ERROR]    where: undefined,
+2025-10-21T13:39:38.360781689Z: [ERROR]    schema: undefined,
+2025-10-21T13:39:38.360784989Z: [ERROR]    table: undefined,
+2025-10-21T13:39:38.360788089Z: [ERROR]    column: undefined,
+2025-10-21T13:39:38.360791189Z: [ERROR]    dataType: undefined,
+2025-10-21T13:39:38.360794289Z: [ERROR]    constraint: undefined,
+2025-10-21T13:39:38.360797489Z: [ERROR]    file: 'plancat.c',
+2025-10-21T13:39:38.360800589Z: [ERROR]    line: '943',
+2025-10-21T13:39:38.360803689Z: [ERROR]    routine: 'infer_arbiter_indexes'
+2025-10-21T13:39:38.360807089Z: [ERROR]  }
