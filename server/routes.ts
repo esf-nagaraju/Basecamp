@@ -7,6 +7,7 @@ import { z } from "zod";
 import multer from "multer";
 import Papa from "papaparse";
 import { Readable } from "stream";
+import bcrypt from "bcryptjs";
 
 declare global {
   namespace Express {
@@ -268,7 +269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userRole = user.role;
       }
 
-      const { firstName, lastName, email, role, employeeId } = req.body;
+      const { firstName, lastName, email, role, employeeId, password: userPassword } = req.body;
 
       // Validation using Zod
       const createUserSchema = z.object({
@@ -277,9 +278,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: z.string().email("Invalid email format").trim().toLowerCase(),
         role: z.enum(['rcm_specialist', 'manager', 'system_administrator', 'client_user', 'auditor']),
         employeeId: z.string().optional(),
+        password: z.string().min(6, "Password must be at least 6 characters").optional(),
       });
 
-      const validation = createUserSchema.safeParse({ firstName, lastName, email, role, employeeId });
+      const validation = createUserSchema.safeParse({ firstName, lastName, email, role, employeeId, password: userPassword });
       
       if (!validation.success) {
         return res.status(400).json({ 
@@ -297,6 +299,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Hash password if provided
+      let hashedPassword: string | undefined = undefined;
+      if (validatedData.password) {
+        hashedPassword = await bcrypt.hash(validatedData.password, 10);
+      }
+
       // Create the user
       const newUser = await storage.createUser({
         tenantId,
@@ -305,6 +313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: validatedData.email,
         role: validatedData.role,
         fullName: `${validatedData.firstName} ${validatedData.lastName}`,
+        password: hashedPassword,
       });
 
       // If employeeId is provided, create team assignment with error handling

@@ -6,7 +6,9 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Landing() {
+  const [showUserLogin, setShowUserLogin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -14,6 +16,42 @@ export default function Landing() {
 
   const handleMicrosoftLogin = () => {
     window.location.href = "/api/login";
+  };
+
+  const handleUserLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        // Redirect to dashboard
+        window.location.href = "/";
+      } else {
+        const data = await response.json();
+        toast({
+          title: "Login failed",
+          description: data.message || "Invalid email or password",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An error occurred during login",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleAdminLogin = async (e: React.FormEvent) => {
@@ -76,15 +114,15 @@ export default function Landing() {
                 </p>
               </div>
 
-              {!showAdminLogin ? (
+              {!showUserLogin && !showAdminLogin ? (
                 <div className="space-y-6">
                   <Button
-                    data-testid="button-login"
-                    onClick={handleMicrosoftLogin}
+                    data-testid="button-email-login-toggle"
+                    onClick={() => setShowUserLogin(true)}
                     className="w-full h-12 text-base bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
                     size="lg"
                   >
-                    Sign in with Microsoft
+                    Sign in with Email
                   </Button>
 
                   <div className="relative">
@@ -99,23 +137,95 @@ export default function Landing() {
                   </div>
 
                   <Button
-                    data-testid="button-admin-login-toggle"
-                    onClick={() => setShowAdminLogin(true)}
+                    data-testid="button-login"
+                    onClick={handleMicrosoftLogin}
                     variant="outline"
                     className="w-full h-12 text-base"
                     size="lg"
                   >
-                    <Shield className="w-4 h-4 mr-2" />
-                    Admin Login
+                    Sign in with Microsoft
                   </Button>
+
+                  <button
+                    onClick={() => setShowAdminLogin(true)}
+                    className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
+                  >
+                    <Shield className="w-3 h-3 inline mr-1" />
+                    System Administrator Login
+                  </button>
 
                   <div className="text-center">
                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                      Secure authentication powered by Microsoft
+                      Choose your authentication method
                     </p>
                   </div>
                 </div>
-              ) : (
+              ) : showUserLogin ? (
+                <div className="space-y-6">
+                  <div className="text-center mb-4">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded-lg mb-4">
+                      <span className="text-sm font-medium">Email Login</span>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleUserLogin} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-slate-700 dark:text-slate-300">
+                        Email
+                      </Label>
+                      <Input
+                        id="email"
+                        data-testid="input-email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email"
+                        required
+                        className="h-12"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="user-password" className="text-slate-700 dark:text-slate-300">
+                        Password
+                      </Label>
+                      <Input
+                        id="user-password"
+                        data-testid="input-password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        required
+                        className="h-12"
+                      />
+                    </div>
+
+                    <Button
+                      data-testid="button-user-submit"
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full h-12 text-base bg-indigo-600 text-white"
+                      size="lg"
+                    >
+                      {isLoading ? 'Signing in...' : 'Sign in'}
+                    </Button>
+                  </form>
+
+                  <Button
+                    data-testid="button-back-to-options"
+                    onClick={() => {
+                      setShowUserLogin(false);
+                      setEmail("");
+                      setPassword("");
+                    }}
+                    variant="ghost"
+                    className="w-full"
+                  >
+                    Back to login options
+                  </Button>
+                </div>
+              ) : showAdminLogin ? (
                 <div className="space-y-6">
                   <div className="text-center mb-4">
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded-lg mb-4">
@@ -169,15 +279,19 @@ export default function Landing() {
                   </form>
 
                   <Button
-                    data-testid="button-back-to-microsoft"
-                    onClick={() => setShowAdminLogin(false)}
+                    data-testid="button-back-to-options-admin"
+                    onClick={() => {
+                      setShowAdminLogin(false);
+                      setUsername("");
+                      setPassword("");
+                    }}
                     variant="ghost"
                     className="w-full"
                   >
-                    Back to Microsoft Login
+                    Back to login options
                   </Button>
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* Footer */}
