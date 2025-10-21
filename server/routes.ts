@@ -26,6 +26,26 @@ const fileUpload = multer({
 });
 
 async function getUserContext(req: any): Promise<{ userId: string; tenantId: string }> {
+  // Check if this is a local admin user
+  if (req.user.isLocalAdmin) {
+    // Local admin has special access - use first tenant or create default
+    const allTenants = await storage.getTenants();
+    let tenantId = allTenants[0]?.id;
+    
+    if (!tenantId) {
+      // Create default tenant for local admin if none exists
+      const defaultTenant = await storage.createTenant({
+        name: 'Default Organization'
+      });
+      tenantId = defaultTenant.id;
+    }
+    
+    return {
+      userId: req.user.id,
+      tenantId
+    };
+  }
+  
   // Azure AD user object contains oid (object identifier)
   const azureAdId = req.user.oid;
   const user = await storage.getUserByAzureAdId(azureAdId);
@@ -78,6 +98,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
+      // Handle local admin user
+      if (req.user.isLocalAdmin) {
+        return res.json({
+          id: req.user.id,
+          email: req.user.email,
+          firstName: req.user.firstName,
+          lastName: req.user.lastName,
+          role: req.user.role,
+          profileImageUrl: null,
+          tenantId: null, // Admin has access to all tenants
+          isLocalAdmin: true
+        });
+      }
+      
       const azureAdId = req.user.oid;
       const user = await storage.getUserByAzureAdId(azureAdId);
       

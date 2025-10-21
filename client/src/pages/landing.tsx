@@ -1,9 +1,54 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardList, BarChart3, TrendingUp, CheckCircle2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ClipboardList, BarChart3, TrendingUp, CheckCircle2, Shield } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Landing() {
-  const handleLogin = () => {
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleMicrosoftLogin = () => {
     window.location.href = "/api/login";
+  };
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        // Redirect to dashboard
+        window.location.href = "/";
+      } else {
+        toast({
+          title: "Login failed",
+          description: "Invalid username or password",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An error occurred during login",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -31,22 +76,108 @@ export default function Landing() {
                 </p>
               </div>
 
-              <div className="space-y-6">
-                <Button
-                  data-testid="button-login"
-                  onClick={handleLogin}
-                  className="w-full h-12 text-base bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
-                  size="lg"
-                >
-                  Sign in with Microsoft
-                </Button>
+              {!showAdminLogin ? (
+                <div className="space-y-6">
+                  <Button
+                    data-testid="button-login"
+                    onClick={handleMicrosoftLogin}
+                    className="w-full h-12 text-base bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
+                    size="lg"
+                  >
+                    Sign in with Microsoft
+                  </Button>
 
-                <div className="text-center">
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Secure authentication powered by Microsoft
-                  </p>
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-slate-300 dark:border-slate-700" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white dark:bg-slate-900 px-2 text-slate-500 dark:text-slate-400">
+                        Or
+                      </span>
+                    </div>
+                  </div>
+
+                  <Button
+                    data-testid="button-admin-login-toggle"
+                    onClick={() => setShowAdminLogin(true)}
+                    variant="outline"
+                    className="w-full h-12 text-base"
+                    size="lg"
+                  >
+                    <Shield className="w-4 h-4 mr-2" />
+                    Admin Login
+                  </Button>
+
+                  <div className="text-center">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Secure authentication powered by Microsoft
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="text-center mb-4">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded-lg mb-4">
+                      <Shield className="w-4 h-4" />
+                      <span className="text-sm font-medium">Administrator Login</span>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleAdminLogin} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="username" className="text-slate-700 dark:text-slate-300">
+                        Username
+                      </Label>
+                      <Input
+                        id="username"
+                        data-testid="input-admin-username"
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Enter admin username"
+                        required
+                        className="h-12"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="password" className="text-slate-700 dark:text-slate-300">
+                        Password
+                      </Label>
+                      <Input
+                        id="password"
+                        data-testid="input-admin-password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter admin password"
+                        required
+                        className="h-12"
+                      />
+                    </div>
+
+                    <Button
+                      data-testid="button-admin-submit"
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full h-12 text-base bg-indigo-600 text-white"
+                      size="lg"
+                    >
+                      {isLoading ? 'Signing in...' : 'Sign in'}
+                    </Button>
+                  </form>
+
+                  <Button
+                    data-testid="button-back-to-microsoft"
+                    onClick={() => setShowAdminLogin(false)}
+                    variant="ghost"
+                    className="w-full"
+                  >
+                    Back to Microsoft Login
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Footer */}
