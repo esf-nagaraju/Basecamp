@@ -5,15 +5,6 @@ import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
-// Check if Azure AD is configured
-const isAzureAdConfigured = () => {
-  return !!(
-    process.env.AZURE_TENANT_ID &&
-    process.env.AZURE_CLIENT_ID &&
-    process.env.AZURE_CLIENT_SECRET
-  );
-};
-
 // Validate required environment variables
 const requiredEnvVars = [
   'AZURE_TENANT_ID',
@@ -22,19 +13,10 @@ const requiredEnvVars = [
   'SESSION_SECRET'
 ];
 
-// In production, Azure AD is required
-if (process.env.NODE_ENV === 'production') {
-  for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-      throw new Error(`Environment variable ${envVar} is required for Azure AD authentication in production`);
-    }
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    throw new Error(`Environment variable ${envVar} is required for Azure AD authentication`);
   }
-}
-
-// In development, warn if Azure AD is not configured
-if (process.env.NODE_ENV === 'development' && !isAzureAdConfigured()) {
-  console.warn('⚠️  Azure AD is not configured. Running in development mode without Azure AD authentication.');
-  console.warn('⚠️  To enable Azure AD locally, set: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET');
 }
 
 // Get the app URL for redirect URIs
@@ -77,15 +59,8 @@ export function getSession() {
     tableName: "sessions",
   });
   
-  // Use SESSION_SECRET if available, otherwise use a development fallback
-  const sessionSecret = process.env.SESSION_SECRET || 'dev-session-secret-change-in-production';
-  
-  if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'development') {
-    console.warn('⚠️  Using default SESSION_SECRET for development. Set SESSION_SECRET env var for production.');
-  }
-  
   return session({
-    secret: sessionSecret,
+    secret: process.env.SESSION_SECRET!,
     store: sessionStore,
     resave: false,
     saveUninitialized: true,
@@ -156,107 +131,80 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Azure AD OIDC Strategy
+  const verify: VerifyCallback = async (
+    req: Express.Request,
+    profile: IProfile,
+    done: (error: any, user?: any) => void
+  ) => {
+    try {
+      await upsertUser(profile);
+      // Store Azure AD profile in session
+      done(null, {
+        oid: profile.oid,
+        displayName: profile.displayName,
+        email: profile._json?.email || profile.upn,
+      });
+    } catch (error) {
+      console.error('[Azure AD Auth] Error during verification:', error);
+      done(error);
+    }
+  };
+
+  passport.use('azuread-openidconnect', new OIDCStrategy(azureAdConfig, verify));
+
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
-  // Only set up Azure AD if configured
-  if (isAzureAdConfigured()) {
-    console.log('✅ Azure AD authentication is enabled');
-    
-    // Azure AD OIDC Strategy
-    const verify: VerifyCallback = async (
-      req: Express.Request,
-      profile: IProfile,
-      done: (error: any, user?: any) => void
-    ) => {
-      try {
-        await upsertUser(profile);
-        // Store Azure AD profile in session
-        done(null, {
-          oid: profile.oid,
-          displayName: profile.displayName,
-          email: profile._json?.email || profile.upn,
-        });
-      } catch (error) {
-        console.error('[Azure AD Auth] Error during verification:', error);
-        done(error);
+  // Login route - initiates Azure AD authentication
+  app.get("/api/login", passport.authenticate('azuread-openidconnect', {
+    failureRedirect: '/',
+  }));
+
+  // Callback route - handles Azure AD response
+  app.post("/api/callback", (req, res, next) => {
+    console.log('[Azure AD Auth] Callback received');
+    passport.authenticate('azuread-openidconnect', (err: any, user: any, info: any) => {
+      console.log('[Azure AD Auth] Callback result - err:', err, 'user:', user ? 'present' : 'null', 'info:', info);
+      
+      if (err) {
+        console.error('[Azure AD Auth] Authentication error:', err);
+        return res.redirect("/api/login");
       }
-    };
+      
+      if (!user) {
+        console.error('[Azure AD Auth] No user returned. Info:', info);
+        return res.redirect("/api/login");
+      }
 
-    passport.use('azuread-openidconnect', new OIDCStrategy(azureAdConfig, verify));
-
-    // Login route - initiates Azure AD authentication
-    app.get("/api/login", passport.authenticate('azuread-openidconnect', {
-      failureRedirect: '/',
-    }));
-
-    // Callback route - handles Azure AD response
-    app.post("/api/callback", (req, res, next) => {
-      console.log('[Azure AD Auth] Callback received');
-      passport.authenticate('azuread-openidconnect', (err: any, user: any, info: any) => {
-        console.log('[Azure AD Auth] Callback result - err:', err, 'user:', user ? 'present' : 'null', 'info:', info);
-        
+      req.session.regenerate((err) => {
         if (err) {
-          console.error('[Azure AD Auth] Authentication error:', err);
-          return res.redirect("/api/login");
-        }
-        
-        if (!user) {
-          console.error('[Azure AD Auth] No user returned. Info:', info);
-          return res.redirect("/api/login");
+          console.error('[Azure AD Auth] Session regeneration failed:', err);
+          return next(err);
         }
 
-        req.session.regenerate((err) => {
+        req.login(user, (err) => {
           if (err) {
-            console.error('[Azure AD Auth] Session regeneration failed:', err);
+            console.error('[Azure AD Auth] Login failed:', err);
             return next(err);
           }
+          console.log('[Azure AD Auth] Login successful for:', user.email);
+          return res.redirect("/");
+        });
+      });
+    })(req, res, next);
+  });
 
-          req.login(user, (err) => {
-            if (err) {
-              console.error('[Azure AD Auth] Login failed:', err);
-              return next(err);
-            }
-            console.log('[Azure AD Auth] Login successful for:', user.email);
-            return res.redirect("/");
-          });
-        });
-      })(req, res, next);
-    });
-
-    // Logout route
-    app.get("/api/logout", (req, res) => {
-      const logoutUrl = `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/logout?post_logout_redirect_uri=${encodeURIComponent(appUrl)}`;
-      
-      req.logout(() => {
-        req.session.destroy(() => {
-          res.redirect(logoutUrl);
-        });
+  // Logout route
+  app.get("/api/logout", (req, res) => {
+    const logoutUrl = `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/logout?post_logout_redirect_uri=${encodeURIComponent(appUrl)}`;
+    
+    req.logout(() => {
+      req.session.destroy(() => {
+        res.redirect(logoutUrl);
       });
     });
-  } else {
-    // Development mode without Azure AD - provide stub endpoints
-    console.log('⚠️  Running in development mode without Azure AD');
-    
-    app.get("/api/login", (req, res) => {
-      res.status(501).json({ 
-        error: 'Azure AD not configured', 
-        message: 'Set AZURE_TENANT_ID, AZURE_CLIENT_ID, and AZURE_CLIENT_SECRET to enable authentication' 
-      });
-    });
-    
-    app.post("/api/callback", (req, res) => {
-      res.status(501).json({ error: 'Azure AD not configured' });
-    });
-    
-    app.get("/api/logout", (req, res) => {
-      req.logout(() => {
-        req.session.destroy(() => {
-          res.redirect("/");
-        });
-      });
-    });
-  }
+  });
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
