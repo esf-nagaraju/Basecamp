@@ -1,0 +1,45 @@
+[Azure AD Auth] Callback result - err: ErrorEvent {
+2025-10-21T12:57:38.957915732Z: [INFO]    [Symbol(kTarget)]: WebSocket {
+2025-10-21T12:57:38.957922332Z: [INFO]      _events: [Object: null prototype] {
+2025-10-21T12:57:38.957926632Z: [INFO]        error: [Function],
+2025-10-21T12:57:38.957930132Z: [INFO]        message: [Function],
+2025-10-21T12:57:38.957933632Z: [INFO]        close: [Function],
+2025-10-21T12:57:38.957937133Z: [INFO]        open: [Function]
+2025-10-21T12:57:38.957940733Z: [INFO]      },
+2025-10-21T12:57:38.957944133Z: [INFO]      _eventsCount: 4,
+2025-10-21T12:57:38.957947633Z: [INFO]      _maxListeners: undefined,
+2025-10-21T12:57:38.957951033Z: [INFO]      _binaryType: 'arraybuffer',
+2025-10-21T12:57:38.957954633Z: [INFO]      _closeCode: 1006,
+2025-10-21T12:57:38.957958033Z: [INFO]      _closeFrameReceived: false,
+2025-10-21T12:57:38.957961533Z: [INFO]      _closeFrameSent: false,
+2025-10-21T12:57:38.957964933Z: [INFO]      _closeMessage: <Buffer >,
+2025-10-21T12:57:38.957968933Z: [INFO]      _closeTimer: null,
+2025-10-21T12:57:38.957972433Z: [INFO]      _errorEmitted: true,
+2025-10-21T12:57:38.957993733Z: [INFO]      _extensions: {},
+2025-10-21T12:57:38.957997333Z: [INFO]      _paused: false,
+2025-10-21T12:57:38.958001033Z: [INFO]      _protocol: '',
+2025-10-21T12:57:38.958004633Z: [INFO]      _readyState: 3,
+2025-10-21T12:57:38.958008133Z: [INFO]      _receiver: null,
+2025-10-21T12:57:38.958011733Z: [INFO]      _sender: null,
+2025-10-21T12:57:38.958015333Z: [INFO]      _socket: null,
+2025-10-21T12:57:38.958018833Z: [INFO]      _bufferedAmount: 0,
+2025-10-21T12:57:38.958022433Z: [INFO]      _isServer: false,
+2025-10-21T12:57:38.958025933Z: [INFO]      _redirects: 0,
+2025-10-21T12:57:38.958029533Z: [INFO]      _autoPong: true,
+2025-10-21T12:57:38.958033233Z: [INFO]      _url: 'wss://pga-servasdfassdfsf.postgres.database.azure.com/v2',
+2025-10-21T12:57:38.958036934Z: [INFO]      _req: null,
+2025-10-21T12:57:38.958040534Z: [INFO]      [Symbol(shapeMode)]: false,
+2025-10-21T12:57:38.958044134Z: [INFO]      [Symbol(kCapture)]: false
+2025-10-21T12:57:38.958047734Z: [INFO]    },
+2025-10-21T12:57:38.958051234Z: [INFO]    [Symbol(kType)]: 'error',
+2025-10-21T12:57:38.958054934Z: [INFO]    [Symbol(kError)]: Error: connect ETIMEDOUT 172.190.133.250:443
+2025-10-21T12:57:38.958058734Z: [INFO]        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
+2025-10-21T12:57:38.958062434Z: [INFO]        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+2025-10-21T12:57:38.958066134Z: [INFO]      errno: -110,
+2025-10-21T12:57:38.958069734Z: [INFO]      code: 'ETIMEDOUT',
+2025-10-21T12:57:38.958073234Z: [INFO]      syscall: 'connect',
+2025-10-21T12:57:38.958094534Z: [INFO]      address: '172.190.133.250',
+2025-10-21T12:57:38.958098134Z: [INFO]      port: 443
+2025-10-21T12:57:38.958100834Z: [INFO]    },
+2025-10-21T12:57:38.958103534Z: [INFO]    [Symbol(kMessage)]: 'connect ETIMEDOUT 172.190.133.250:443'
+2025-10-21T12:57:38.958106334Z: [INFO]  } user: null info: undefined
