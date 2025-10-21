@@ -1,0 +1,32 @@
+2025-10-21T12:09:01.899231770Z: [INFO]  âœ… Azure AD authentication is enabled
+2025-10-21T12:09:02.014193666Z: [INFO]  12:09:01 PM [express] serving on port 8080
+2025-10-21T12:09:07.182809333Z: [INFO]  12:09:07 PM [express] GET /api/auth/user 401 in 46ms :: {"message":"Unauthorized"}
+2025-10-21T12:09:11.839322253Z: [INFO]  {"name":"AzureAD: Metadata Parser","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"Parsing JSON retreived from the endpoint","time":"2025-10-21T12:09:11.837Z","v":0}
+2025-10-21T12:09:11.842766586Z: [INFO]  {"name":"AzureAD: Metadata Parser","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"Request to update the Open ID Connect Metadata","time":"2025-10-21T12:09:11.839Z","v":0}
+2025-10-21T12:09:11.937502290Z: [INFO]  {"name":"AzureAD: Metadata Parser","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"Parsing JSON retreived from the endpoint","time":"2025-10-21T12:09:11.931Z","v":0}
+2025-10-21T12:09:11.939026205Z: [INFO]  {"name":"AzureAD: OIDC Passport Strategy","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"entering Strategy.prototype._flowInitializationHandler","time":"2025-10-21T12:09:11.938Z","v":0}
+2025-10-21T12:09:11.940211016Z: [INFO]  {"name":"AzureAD: OIDC Passport Strategy","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"We are sending the response_type:  code id_token","time":"2025-10-21T12:09:11.940Z","v":0}
+2025-10-21T12:09:11.958629292Z: [INFO]  {"name":"AzureAD: OIDC Passport Strategy","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"We are sending the response_mode:  form_post","time":"2025-10-21T12:09:11.945Z","v":0}
+2025-10-21T12:09:11.966954672Z: [INFO]  12:09:11 PM [express] GET /api/login 302 in 421ms
+2025-10-21T12:09:42.586998672Z: [INFO]  [Azure AD Auth] Callback received
+2025-10-21T12:09:42.587043973Z: [INFO]  {"name":"AzureAD: OIDC Passport Strategy","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"entering Strategy.prototype._hybridFlowHandler","time":"2025-10-21T12:09:42.586Z","v":0}
+2025-10-21T12:09:42.595935958Z: [INFO]  {"name":"AzureAD: OIDC Passport Strategy","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"token is decoded successfully","time":"2025-10-21T12:09:42.588Z","v":0}
+2025-10-21T12:09:42.595955658Z: [INFO]  {"name":"AzureAD: Metadata Parser","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"working on key","time":"2025-10-21T12:09:42.589Z","v":0}
+2025-10-21T12:09:42.595967458Z: [INFO]  {"name":"AzureAD: Metadata Parser","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"working on key","time":"2025-10-21T12:09:42.589Z","v":0}
+2025-10-21T12:09:42.597347571Z: [INFO]  {"name":"AzureAD: Metadata Parser","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"working on key","time":"2025-10-21T12:09:42.597Z","v":0}
+2025-10-21T12:09:42.605066745Z: [INFO]  {"name":"AzureAD: OIDC Passport Strategy","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"PEMkey is generated","time":"2025-10-21T12:09:42.598Z","v":0}
+2025-10-21T12:09:42.607920872Z: [INFO]  {"name":"AzureAD: OIDC Passport Strategy","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"claims are received","time":"2025-10-21T12:09:42.607Z","v":0}
+2025-10-21T12:09:42.616116050Z: [INFO]  {"name":"AzureAD: OIDC Passport Strategy","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"entering Strategy.prototype._authCodeFlowHandler","time":"2025-10-21T12:09:42.615Z","v":0}
+2025-10-21T12:09:42.622303909Z: [INFO]  {"name":"AzureAD: OIDC Passport Strategy","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"In _getAccessTokenBySecretOrAssertion: we are using client secret","time":"2025-10-21T12:09:42.617Z","v":0}
+2025-10-21T12:09:43.042199514Z: [INFO]  {"name":"AzureAD: OIDC Passport Strategy","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"token is decoded successfully","time":"2025-10-21T12:09:43.040Z","v":0}
+2025-10-21T12:09:43.042242915Z: [INFO]  {"name":"AzureAD: Metadata Parser","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"working on key","time":"2025-10-21T12:09:43.041Z","v":0}
+2025-10-21T12:09:43.042249615Z: [INFO]  {"name":"AzureAD: Metadata Parser","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"working on key","time":"2025-10-21T12:09:43.041Z","v":0}
+2025-10-21T12:09:43.042254615Z: [INFO]  {"name":"AzureAD: Metadata Parser","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"working on key","time":"2025-10-21T12:09:43.042Z","v":0}
+2025-10-21T12:09:43.053335520Z: [INFO]  {"name":"AzureAD: OIDC Passport Strategy","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"PEMkey is generated","time":"2025-10-21T12:09:43.045Z","v":0}
+2025-10-21T12:09:43.053383221Z: [INFO]  {"name":"AzureAD: OIDC Passport Strategy","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"claims are received","time":"2025-10-21T12:09:43.046Z","v":0}
+2025-10-21T12:09:43.053390321Z: [INFO]  {"name":"AzureAD: OIDC Passport Strategy","hostname":"2ec5e895ef5a","pid":1141,"level":30,"msg":"v2 has no userinfo endpoint, using the content in id_token as the profile","time":"2025-10-21T12:09:43.047Z","v":0}
+2025-10-21T12:09:43.055483441Z: [INFO]  [Azure AD Auth] Received profile: {
+2025-10-21T12:09:43.055496041Z: [INFO]    oid: '34d16cbe-1773-49d2-ad43-f604f80d13a3',
+2025-10-21T12:09:43.055499541Z: [INFO]    email: 'Nagaraju.Varikuti@esolutionsfirst.com',
+2025-10-21T12:09:43.055502341Z: [INFO]    displayName: 'Nagaraju Varikuti'
+2025-10-21T12:09:43.055505141Z: [INFO]  }
