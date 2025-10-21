@@ -4,6 +4,7 @@ import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import { setupLocalAdminAuth, setupLocalAdminRoutes, isLocalAdmin } from "./localAdminAuth";
 
 // Validate required environment variables
 const requiredEnvVars = [
@@ -177,6 +178,9 @@ export async function setupAuth(app: Express) {
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
+  
+  // Setup local admin routes first
+  setupLocalAdminRoutes(app);
 
   // Azure AD OIDC Strategy
   const verify: VerifyCallback = async (
@@ -200,8 +204,19 @@ export async function setupAuth(app: Express) {
 
   passport.use('azuread-openidconnect', new OIDCStrategy(azureAdConfig, verify));
 
-  passport.serializeUser((user: Express.User, cb) => cb(null, user));
-  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+  // Setup local admin authentication
+  setupLocalAdminAuth();
+
+  // Serialize/deserialize user - handles both Azure AD and local admin users
+  passport.serializeUser((user: any, cb) => {
+    console.log('[Auth] Serializing user:', user.email || user.username);
+    cb(null, user);
+  });
+  
+  passport.deserializeUser((user: any, cb) => {
+    console.log('[Auth] Deserializing user:', user.email || user.username);
+    cb(null, user);
+  });
 
   // Login route - initiates Azure AD authentication
   app.get("/api/login", passport.authenticate('azuread-openidconnect', {
