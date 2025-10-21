@@ -57,14 +57,14 @@ const azureAdConfig: IOIDCStrategyOptionWithRequest = {
   responseMode: 'form_post',
   redirectUrl: `${appUrl}/api/callback`,
   allowHttpForRedirectUrl: process.env.NODE_ENV === 'development',
-  validateIssuer: process.env.NODE_ENV === 'production',
+  validateIssuer: true,
   passReqToCallback: true,
   scope: ['openid', 'profile', 'email'],
-  loggingLevel: process.env.NODE_ENV === 'development' ? 'info' : 'error',
+  loggingLevel: 'info',
   nonceLifetime: 3600,
   nonceMaxAmount: 5,
   useCookieInsteadOfSession: false,
-  cookieSameSite: true,
+  cookieSameSite: false,
 };
 
 export function getSession() {
@@ -88,12 +88,12 @@ export function getSession() {
     secret: sessionSecret,
     store: sessionStore,
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: sessionTtl,
-      sameSite: "lax",
+      sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
     },
   });
 }
@@ -192,9 +192,17 @@ export async function setupAuth(app: Express) {
 
     // Callback route - handles Azure AD response
     app.post("/api/callback", (req, res, next) => {
-      passport.authenticate('azuread-openidconnect', (err: any, user: any) => {
-        if (err || !user) {
-          console.error('[Azure AD Auth] Authentication failed:', err);
+      console.log('[Azure AD Auth] Callback received');
+      passport.authenticate('azuread-openidconnect', (err: any, user: any, info: any) => {
+        console.log('[Azure AD Auth] Callback result - err:', err, 'user:', user ? 'present' : 'null', 'info:', info);
+        
+        if (err) {
+          console.error('[Azure AD Auth] Authentication error:', err);
+          return res.redirect("/api/login");
+        }
+        
+        if (!user) {
+          console.error('[Azure AD Auth] No user returned. Info:', info);
           return res.redirect("/api/login");
         }
 
